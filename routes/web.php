@@ -7,6 +7,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::post('schedules/{schedule}/delay', [ScheduleController::class, 'updateScheduleWithDelay'])->name('schedules.delay');
+Route::post('schedules/{schedule}/delay', [ScheduleController::class, 'applyDelayToSchedule'])->name('schedules.delay');
 
 Route::resource('schedules', ScheduleController::class);

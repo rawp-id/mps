@@ -8,6 +8,7 @@ use App\Models\Process;
 use App\Models\Product;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
 {
@@ -130,6 +131,131 @@ class ScheduleController extends Controller
 
             $lastSchedule = $next;
         }
+    }
+
+    public function applyDelayToSchedule(Request $request, Schedule $schedule)
+    {
+        $delayMinutes = $request->input('delay_minutes', 0);
+
+        if ($delayMinutes <= 0) {
+            return redirect()->back()->withErrors(['delay_minutes' => 'Delay must be greater than 0']);
+        }
+
+        try {
+            $this->updateScheduleWithDelay($schedule, $delayMinutes);
+            return redirect()->route('schedules.index')->with('success', 'Schedule updated with delay successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function applyDelayToScheduleSmart($scheduleId, $delayMinutes)
+    {
+        DB::transaction(function () use ($scheduleId, $delayMinutes) {
+
+            $schedule = Schedule::findOrFail($scheduleId);
+
+            $product = $schedule->product;
+            $shippingDate = $product->shipping_date;
+
+            echo "▶️ Applying delay of {$delayMinutes} minutes to Product {$product->code}, Process {$schedule->process_id}\n";
+
+            // Step 1: Update current schedule with delay
+            $schedule->start_time = $schedule->start_time->addMinutes($delayMinutes);
+            $schedule->end_time = $schedule->end_time->addMinutes($delayMinutes);
+            $schedule->save();
+
+            echo "✅ Updated Process {$schedule->process_id}: {$schedule->start_time} → {$schedule->end_time}\n";
+
+            // Step 2: Update machine availability tracking
+            $machineAvailableAt = [];
+            $machineAvailableAt[$schedule->machine_id] = $schedule->end_time->copy();
+
+            // Step 3: Get all next schedules for this product in process order (based on previous_schedule_id)
+            $nextSchedules = [];
+            $currentScheduleId = $schedule->id;
+
+            while (true) {
+                $nextSchedule = Schedule::where('previous_schedule_id', $currentScheduleId)
+                    ->where('product_id', $product->id)
+                    ->first();
+
+                if (!$nextSchedule) {
+                    break;
+                }
+
+                $nextSchedules[] = $nextSchedule;
+                $currentScheduleId = $nextSchedule->id;
+            }
+
+            $prevEndTime = $schedule->end_time->copy();
+
+            foreach ($nextSchedules as $nextSchedule) {
+
+                $machineId = $nextSchedule->machine_id;
+                $duration = $nextSchedule->plan_duration; // menit
+
+                // Machine ready time (tracking)
+                if (!isset($machineAvailableAt[$machineId])) {
+                    // Ambil machineAvailableAt dari last schedule di mesin tsb
+                    $lastMachineSchedule = Schedule::where('machine_id', $machineId)
+                        ->where('product_id', '!=', $product->id)
+                        ->orderByDesc('end_time')
+                        ->first();
+
+                    $machineAvailableAt[$machineId] = $lastMachineSchedule
+                        ? $lastMachineSchedule->end_time->copy()
+                        : $nextSchedule->start_time->copy();
+                }
+
+                $machineReady = $machineAvailableAt[$machineId]->copy();
+
+                // Ideal start_time
+                $newStart = $prevEndTime->copy()->max($machineReady);
+                $newEnd = $newStart->copy()->addMinutes($duration);
+
+                // Conflict resolution loop
+                do {
+                    $conflict = Schedule::where('machine_id', $machineId)
+                        ->where('product_id', '!=', $product->id)
+                        ->where(function ($query) use ($newStart, $newEnd) {
+                            $query->whereBetween('start_time', [$newStart, $newEnd])
+                                ->orWhereBetween('end_time', [$newStart, $newEnd])
+                                ->orWhere(function ($q) use ($newStart, $newEnd) {
+                                    $q->where('start_time', '<', $newStart)
+                                        ->where('end_time', '>', $newEnd);
+                                });
+                        })
+                        ->exists();
+
+                    if ($conflict) {
+                        echo "⚠️ Conflict detected on Machine {$machineId} → shifting Process {$nextSchedule->process_id}\n";
+                        $newStart->addMinutes(1); // Geser 1 menit (bisa di-tune)
+                        $newEnd = $newStart->copy()->addMinutes($duration);
+
+                        if ($newEnd->gt($shippingDate)) {
+                            throw new \Exception("⛔️ Cannot apply delay, Process {$nextSchedule->process_id} will exceed shipping date after conflict resolution!");
+                        }
+                    }
+
+                } while ($conflict);
+
+                // Apply new start and end
+                $nextSchedule->start_time = $newStart;
+                $nextSchedule->end_time = $newEnd;
+                $nextSchedule->save();
+
+                echo "✅ Updated Process {$nextSchedule->process_id}: {$newStart} → {$newEnd}\n";
+
+                // Update machine availability
+                $machineAvailableAt[$machineId] = $newEnd->copy();
+
+                // Update prevEndTime for next process
+                $prevEndTime = $newEnd->copy();
+            }
+
+            echo "🎉 Delay applied successfully to Product {$product->code}\n";
+        });
     }
 
     function hasMachineConflict($machineId, Carbon $start, Carbon $end, $excludeId = null): bool

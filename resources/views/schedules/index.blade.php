@@ -5,7 +5,7 @@
 @section('content')
     <div class="d-flex justify-content-between mb-3">
         <h1>Schedules</h1>
-        <a href="{{ route('schedules.create') }}" class="btn btn-primary">Add Schedule</a>
+        <a href="{{ route('schedules.create') }}" class="btn btn-primary">+ Schedule</a>
     </div>
 
     <table class="table table-bordered table-striped">
@@ -34,15 +34,15 @@
                     <td>{{ $schedule->start_time }}</td>
                     <td>{{ $schedule->end_time }}</td>
                     <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Add Delay</button>
-                            <a href="{{ route('schedules.show', $schedule) }}" class="btn btn-sm btn-info">View</a>
-                            <a href="{{ route('schedules.edit', $schedule) }}" class="btn btn-sm btn-warning">Edit</a>
+                        <div class="d-flex flex-row gap-2 align-items-center">
+                            <button class="btn btn-sm btn-primary w-100" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Delay</button>
+                            <a href="{{ route('schedules.show', $schedule) }}" class="btn btn-sm btn-info w-100">View</a>
+                            <a href="{{ route('schedules.edit', $schedule) }}" class="btn btn-sm btn-warning w-100">Edit</a>
                             <form action="{{ route('schedules.destroy', $schedule) }}" method="POST"
                                 style="display:inline-block" onsubmit="return confirm('Are you sure?')">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-sm btn-danger">Delete</button>
+                                <button class="btn btn-sm btn-danger w-100">Delete</button>
                             </form>
                         </div>
                     </td>
@@ -67,9 +67,9 @@
                                             required>
                                     </div> --}}
                                     <div class="mb-3">
-                                        <label for="delay_duration" class="form-label">Delay Duration (minutes)</label>
-                                        <input type="number" class="form-control" id="delay_duration"
-                                            name="delay_duration" required>
+                                        <label for="delay_minutes" class="form-label">Delay Duration (minutes)</label>
+                                        <input type="number" class="form-control" id="delay_minutes"
+                                            name="delay_minutes" required>
                                     </div>
                                     <button type="submit" class="btn btn-primary">Submit Delay</button>
                                 </form>
