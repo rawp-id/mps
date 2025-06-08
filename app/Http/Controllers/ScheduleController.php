@@ -82,6 +82,10 @@ class ScheduleController extends Controller
         return redirect()->route('schedules.index')->with('success', 'Schedule updated successfully.');
     }
 
+    public function schedule(){
+
+    }
+
     public function updateScheduleWithDelay(Schedule $schedule, int $delayMinutes)
     {
         $product = $schedule->product;

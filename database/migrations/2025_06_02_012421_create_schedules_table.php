@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('process_id')->constrained('processes')->onDelete('cascade');
             $table->foreignId('machine_id')->constrained('machines')->onDelete('cascade');
             $table->foreignId('previous_schedule_id')->nullable()->constrained('schedules')->onDelete('cascade');
+            $table->foreignId('machine_dependency_id')->nullable()->constrained('schedule')->onDelete('cascade');
             $table->bigInteger('quantity')->default(0);
             $table->bigInteger('plan_speed')->default(0);
             $table->decimal('conversion_value')->nullable();

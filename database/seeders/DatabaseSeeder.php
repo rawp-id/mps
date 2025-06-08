@@ -91,7 +91,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($products as $product) {
             $prevScheduleId = null;
-            $prevStartTime = $product->shipping_date->copy();
+            $prevStartTime = $product->shipping_date->copy()->subMinutes(60); // Mulai dari 1 jam sebelum shipping date
 
             $tempSchedules = []; // Simpan sementara di array
 
