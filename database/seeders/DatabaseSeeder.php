@@ -89,16 +89,18 @@ class DatabaseSeeder extends Seeder
 
         $machineAvailableAt = collect(range(1, 5))->mapWithKeys(fn($id) => [$id => $baseTime->copy()])->toArray();
 
+        $lastSchedulePerProcess = []; // per process_id
+
         foreach ($products as $product) {
             $prevScheduleId = null;
-            $prevStartTime = $product->shipping_date->copy()->subMinutes(60); // Mulai dari 1 jam sebelum shipping date
+            $prevStartTime = $product->shipping_date->copy()->subMinutes(60);
 
-            $tempSchedules = []; // Simpan sementara di array
+            $tempSchedules = [];
 
             for ($i = 5; $i >= 1; $i--) {
                 $planSpeed = $speeds[$i - 1];
                 $conversion = $planSpeed / $quantity;
-                $duration = $conversion * 60; // menit
+                $duration = $conversion * 60;
 
                 $machineId = $i;
                 $machineReady = $machineAvailableAt[$machineId]->copy();
@@ -106,7 +108,6 @@ class DatabaseSeeder extends Seeder
                 $end = $prevStartTime->copy();
                 $start = $end->copy()->subMinutes($duration);
 
-                // Pastikan mesin ready sebelum start
                 if ($machineReady->gt($start)) {
                     $start = $machineReady->copy();
                     $end = $start->copy()->addMinutes($duration);
@@ -117,12 +118,12 @@ class DatabaseSeeder extends Seeder
                     }
                 }
 
-                // Simpan di temp array, nanti kita urutkan proses_id ascending
                 $tempSchedules[] = [
                     'product_id' => $product->id,
                     'process_id' => $i,
                     'machine_id' => $machineId,
-                    'previous_schedule_id' => null, // nanti diisi saat insert
+                    'previous_schedule_id' => null,
+                    'process_dependency_id' => null, // to be set later
                     'quantity' => $quantity,
                     'plan_speed' => $planSpeed,
                     'conversion_value' => $conversion,
@@ -131,77 +132,109 @@ class DatabaseSeeder extends Seeder
                     'end_time' => $end,
                 ];
 
-                // Update machine availability → mundur
                 $machineAvailableAt[$machineId] = $start->copy();
-
-                // Update prevStartTime untuk proses sebelumnya
                 $prevStartTime = $start->copy();
             }
 
-            // Setelah semua proses selesai dihitung → sort ascending by process_id
+            // INSERT tempSchedules ASCENDING by process_id
             usort($tempSchedules, fn($a, $b) => $a['process_id'] <=> $b['process_id']);
 
-            // Insert ke DB dengan previous_schedule_id chain
             $prevScheduleId = null;
+
             foreach ($tempSchedules as $scheduleData) {
                 $scheduleData['previous_schedule_id'] = $prevScheduleId;
 
+                // 👇 This is the global dependency antar product
+                $lastDependencyScheduleId = $lastSchedulePerProcess[$scheduleData['process_id']] ?? null;
+                $scheduleData['process_dependency_id'] = $lastDependencyScheduleId;
+
                 $schedule = Schedule::create($scheduleData);
 
+                echo "Inserted Product {$schedule->product_id} Process {$schedule->process_id} → Schedule ID {$schedule->id} → Dependency: " .
+                    ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
+
                 $prevScheduleId = $schedule->id;
+
+                // Update global dependency per process
+                $lastSchedulePerProcess[$scheduleData['process_id']] = $schedule->id;
             }
         }
 
-        // // Simulasi 5 mesin dan 5 proses
-        // $baseTime = Carbon::create(2025, 5, 7, 8, 0, 0);
-        // $speeds = [8000, 4000, 2000, 2000, 4000];
-        // $quantity = 8000;
-
-        // // Inisialisasi waktu available awal untuk semua mesin
-        // $machineAvailableAt = collect(range(1, 5))->mapWithKeys(fn($id) => [$id => $baseTime->copy()])->toArray();
 
         // foreach ($products as $product) {
         //     $prevScheduleId = null;
-        //     $prevEndTime = $baseTime->copy(); // start dari jam 8.00
+        //     $prevStartTime = $product->shipping_date->copy()->subMinutes(60); // Mulai dari 1 jam sebelum shipping date
 
-        //     for ($i = 1; $i <= 5; $i++) {
+        //     $tempSchedules = []; // Simpan sementara di array
+
+        //     for ($i = 5; $i >= 1; $i--) {
         //         $planSpeed = $speeds[$i - 1];
         //         $conversion = $planSpeed / $quantity;
-        //         $duration = $conversion * 60; // dalam menit
+        //         $duration = $conversion * 60; // menit
 
         //         $machineId = $i;
         //         $machineReady = $machineAvailableAt[$machineId]->copy();
 
-        //         // Mulai proses setelah proses sebelumnya selesai DAN mesin ready
-        //         $start = $prevEndTime->copy()->max($machineReady);
-        //         $end = $start->copy()->addMinutes($duration);
+        //         $end = $prevStartTime->copy();
+        //         $start = $end->copy()->subMinutes($duration);
 
-        //         // ⛔️ Skip atau warning jika endTime lewat dari shipping
-        //         if ($end->gt($product->shipping_date)) {
-        //             echo "⚠️ SKIPPED: Product {$product->code}, process $i exceeds shipping date ({$product->shipping_date})\n";
-        //             break;
+        //         // Pastikan mesin ready sebelum start
+        //         if ($machineReady->gt($start)) {
+        //             $start = $machineReady->copy();
+        //             $end = $start->copy()->addMinutes($duration);
+
+        //             if ($end->gt($product->shipping_date)) {
+        //                 echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
+        //                 break;
+        //             }
         //         }
 
-        //         $schedule = Schedule::create([
+        //         // Simpan di temp array, nanti kita urutkan proses_id ascending
+        //         $tempSchedules[] = [
         //             'product_id' => $product->id,
         //             'process_id' => $i,
         //             'machine_id' => $machineId,
-        //             'previous_schedule_id' => $prevScheduleId,
+        //             'previous_schedule_id' => null, // nanti diisi saat insert
         //             'quantity' => $quantity,
         //             'plan_speed' => $planSpeed,
         //             'conversion_value' => $conversion,
         //             'plan_duration' => $duration,
         //             'start_time' => $start,
         //             'end_time' => $end,
-        //         ]);
+        //         ];
 
-        //         // Update waktu tersedia mesin
-        //         $machineAvailableAt[$machineId] = $end->copy();
+        //         // Update machine availability → mundur
+        //         $machineAvailableAt[$machineId] = $start->copy();
 
-        //         // Update ke proses selanjutnya
-        //         $prevEndTime = $end->copy();
-        //         $prevScheduleId = $schedule->id;
+        //         // Update prevStartTime untuk proses sebelumnya
+        //         $prevStartTime = $start->copy();
         //     }
+
+        //     // Setelah semua proses selesai dihitung → sort ascending by process_id
+        //     usort($tempSchedules, fn($a, $b) => $a['process_id'] <=> $b['process_id']);
+
+        //     // Insert ke DB dengan previous_schedule_id chain DAN process_dependency_id
+        //     $prevScheduleId = null;
+        //     $processScheduleMap = []; // proses_id → schedule_id
+
+        //     foreach ($tempSchedules as $scheduleData) {
+        //         $scheduleData['previous_schedule_id'] = $prevScheduleId;
+
+        //         // Tambahkan dependency → ambil process sebelumnya
+        //         $dependencyProcessId = $scheduleData['process_id'] - 1;
+        //         $scheduleData['process_dependency_id'] = $processScheduleMap[$dependencyProcessId] ?? null;
+
+        //         // Insert ke DB
+        //         $schedule = Schedule::create($scheduleData);
+
+        //         echo "Inserted Process {$schedule->process_id} → Schedule ID {$schedule->id} → Dependency: " .
+        //             ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
+
+        //         // Update chain
+        //         $prevScheduleId = $schedule->id;
+        //         $processScheduleMap[$scheduleData['process_id']] = $schedule->id;
+        //     }
+
         // }
 
     }

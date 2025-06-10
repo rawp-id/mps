@@ -83,7 +83,11 @@ class ScheduleController extends Controller
     }
 
     public function schedule(){
+        $products = Product::with('schedules')->get();
+        $machines = Machine::all();
+        $processes = Process::all();
 
+        
     }
 
     public function updateScheduleWithDelay(Schedule $schedule, int $delayMinutes)
