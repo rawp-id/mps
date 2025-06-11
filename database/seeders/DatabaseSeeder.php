@@ -124,6 +124,7 @@ class DatabaseSeeder extends Seeder
                     'machine_id' => $machineId,
                     'previous_schedule_id' => null,
                     'process_dependency_id' => null, // to be set later
+                    'is_final_prosess' => $i == 5 ? true : false, // last process is final
                     'quantity' => $quantity,
                     'plan_speed' => $planSpeed,
                     'conversion_value' => $conversion,

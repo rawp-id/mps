@@ -82,12 +82,108 @@ class ScheduleController extends Controller
         return redirect()->route('schedules.index')->with('success', 'Schedule updated successfully.');
     }
 
-    public function schedule()
+    // public function addDelay(Request $request, $schedule)
+    // {
+    //     // dd($request->all(), $schedule);
+    //     $delayMinutes = (int) $request->input('delay_minutes');
+    //     $schedule_data = Schedule::findOrFail($schedule);
+    //     // dd($schedule_data, $delayMinutes);
+
+    //     try {
+    //         $this->applyDelay($schedule_data, $delayMinutes);
+    //         // return response()->json(['message' => 'Delay applied successfully']);
+    //         return redirect()->route('schedules.index')->with('success', 'Delay applied successfully.');
+    //     } catch (\Exception $e) {
+    //         dd($e->getMessage());
+    //         // return response()->json(['error' => $e->getMessage()], 400);
+    //         return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+    //     }
+    // }
+
+    public function addDelay(Request $request, $scheduleId)
     {
-        $products = Product::with('schedules')->get();
-        $machines = Machine::all();
-        $processes = Process::all();
+        $delayMinutes = (int) $request->input('delay_minutes');
+        $original = Schedule::findOrFail($scheduleId);
+
+        try {
+            // Simulasikan semua delay dan hasilkan daftar schedule baru
+            $schedules = $this->simulateDelays($original, $delayMinutes);
+
+            // Validasi: bentrok mesin?
+            // foreach ($schedules as $schedule) {
+            //     if ($this->isScheduleConflict($schedule)) {
+            //         // dd($schedule);
+            //         throw new \Exception("Schedule conflict detected for process {$schedule->process_id} on machine {$schedule->machine_id}");
+            //     }
+            // }
+
+            // Validasi: shipment check
+            foreach ($schedules as $schedule) {
+                if ($schedule->is_final_process) {
+                    $shippingDate = optional($schedule->product)->shipping_date;
+                    if ($shippingDate && $schedule->end_time && $schedule->end_time->gt(Carbon::parse($shippingDate))) {
+                        throw new \Exception("Final schedule for product {$schedule->product_id} exceeds shipping date ({$shippingDate})");
+                    }
+                }
+            }
+
+            // Semua valid → Simpan perubahan
+            foreach ($schedules as $schedule) {
+                $schedule->save();
+            }
+
+            // return response()->json(['message' => 'Delay applied successfully']);
+            return redirect()->route('schedules.index')->with('success', 'Delay applied successfully.');
+        } catch (\Exception $e) {
+            // return response()->json(['error' => $e->getMessage()], 400);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
+
+    private function simulateDelays(Schedule $schedule, int $delayMinutes, &$visited = []): array
+    {
+        if (isset($visited[$schedule->id])) {
+            return [];
+        }
+
+        $visited[$schedule->id] = true;
+
+        // Clone schedule agar tidak langsung menyimpan
+        $cloned = clone $schedule;
+
+        $cloned->start_time = $schedule->start_time ? Carbon::parse($schedule->start_time)->addMinutes($delayMinutes) : null;
+        $cloned->end_time   = $schedule->end_time ? Carbon::parse($schedule->end_time)->addMinutes($delayMinutes) : null;
+
+        $result = [$cloned];
+
+        dd($result);
+
+        $children = Schedule::where('product_id', $schedule->product_id)
+            ->where(function ($query) use ($schedule) {
+                $query->where('previous_schedule_id', $schedule->id)
+                    ->orWhere('process_dependency_id', $schedule->id);
+            })->get();
+
+        foreach ($children as $child) {
+            $result = array_merge($result, $this->simulateDelays($child, $delayMinutes, $visited));
+        }
+
+        return $result;
+    }
+
+
+    private function isScheduleConflict(Schedule $schedule): bool
+    {
+        return Schedule::where('id', '!=', $schedule->id)
+            ->where('machine_id', $schedule->machine_id)
+            ->where(function ($query) use ($schedule) {
+                $query->where(function ($q) use ($schedule) {
+                    $q->where('start_time', '<', $schedule->end_time)
+                        ->where('end_time', '>', $schedule->start_time);
+                });
+            })->exists();
+    }
+
 
     public function updateSchedule(Request $request, Schedule $schedule)
     {
