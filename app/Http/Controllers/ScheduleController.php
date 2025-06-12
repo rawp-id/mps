@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\ScheduleGraph\ScheduleGraph;
 
 class ScheduleController extends Controller
 {
@@ -106,8 +107,14 @@ class ScheduleController extends Controller
         $original = Schedule::findOrFail($scheduleId);
 
         try {
+            $schedules = $this->simulateGraphDelay($original->id, 30);
+
+            dd($schedules);
+
             // Simulasikan semua delay dan hasilkan daftar schedule baru
-            $schedules = $this->simulateDelays($original, $delayMinutes);
+            // $schedules = $this->simulateDelays($original, $delayMinutes);
+
+            // dd($schedules);
 
             // Validasi: bentrok mesin?
             // foreach ($schedules as $schedule) {
@@ -140,37 +147,116 @@ class ScheduleController extends Controller
         }
     }
 
-    private function simulateDelays(Schedule $schedule, int $delayMinutes, &$visited = []): array
+    public function simulateGraphDelay($scheduleId, $delayMinutes)
     {
+        $schedules = Schedule::all(); // ambil semua jadwal
+        $graph = new ScheduleGraph($schedules);
+
+        $graph->propagateDelay($scheduleId, $delayMinutes);
+
+        $updated = $graph->getUpdatedSchedules();
+
+        echo "Original Schedule ID: {$scheduleId} with delay of {$delayMinutes} minutes<br>";
+
+        // foreach data awal
+        foreach ($schedules as $schedule) {
+            if (isset($updated[$schedule->id])) {
+                echo "Original Schedule {$schedule->id} start: {$schedule->start_time}, end: {$schedule->end_time}<br>";
+            }
+        }
+
+        echo "<br>Updated Schedules:<br>";
+
+        // foreach data yang sudah diupdate
+        foreach ($updated as $node) {
+            echo "Schedule {$node->id} new start: {$node->start_time}, new end: {$node->end_time}<br>";
+        }
+
+        // return $updated;
+    }
+
+
+    private function simulateDelays(
+        Schedule $schedule,
+        int $delayMinutes,
+        array &$visited = [],
+        array &$clonedMap = []
+    ): array {
+
+        // 1. Hindari siklus
         if (isset($visited[$schedule->id])) {
             return [];
         }
-
         $visited[$schedule->id] = true;
 
-        // Clone schedule agar tidak langsung menyimpan
-        $cloned = clone $schedule;
+        // 2. Klon + geser
+        $clone = clone $schedule;
+        $clone->start_time = $schedule->start_time
+            ? Carbon::parse($schedule->start_time)->addMinutes($delayMinutes)
+            : null;
+        $clone->end_time = $schedule->end_time
+            ? Carbon::parse($schedule->end_time)->addMinutes($delayMinutes)
+            : null;
 
-        $cloned->start_time = $schedule->start_time ? Carbon::parse($schedule->start_time)->addMinutes($delayMinutes) : null;
-        $cloned->end_time   = $schedule->end_time ? Carbon::parse($schedule->end_time)->addMinutes($delayMinutes) : null;
+        $clonedMap[$clone->id] = $clone;     // simpan agar bisa dipakai anaknya
+        $result = [$clone];
 
-        $result = [$cloned];
-
-        dd($result);
-
-        $children = Schedule::where('product_id', $schedule->product_id)
-            ->where(function ($query) use ($schedule) {
-                $query->where('previous_schedule_id', $schedule->id)
-                    ->orWhere('process_dependency_id', $schedule->id);
-            })->get();
+        // 3. Ambil anak-anaknya
+        $children = Schedule::where(function ($q) use ($schedule) {
+            // linear flow dalam produk yg sama
+            $q->where('previous_schedule_id', $schedule->id)
+                ->where('product_id', $schedule->product_id);
+        })
+            ->orWhere(function ($q) use ($schedule) {
+                // dependency lintas-produk
+                $q->where('process_dependency_id', $schedule->id);
+            })
+            ->get();
 
         foreach ($children as $child) {
-            $result = array_merge($result, $this->simulateDelays($child, $delayMinutes, $visited));
+            // hitung start berdasarkan dependency (kalau ada)
+            $depEnd = null;
+            if (
+                $child->process_dependency_id &&
+                isset($clonedMap[$child->process_dependency_id])
+            ) {
+                $depEnd = Carbon::make(
+                    $clonedMap[$child->process_dependency_id]->end_time
+                );
+            }
+
+            $childClone = clone $child;
+
+            if ($depEnd) {                               // mengikuti proses dependency
+                $durasi = $child->start_time && $child->end_time
+                    ? Carbon::parse($child->end_time)
+                        ->diffInMinutes(Carbon::parse($child->start_time))
+                    : 0;
+
+                $childClone->start_time = $depEnd;
+                $childClone->end_time = $depEnd->copy()->addMinutes($durasi);
+            } else {                                     // cukup digeser delay
+                $childClone->start_time = $child->start_time
+                    ? Carbon::parse($child->start_time)->addMinutes($delayMinutes)
+                    : null;
+                $childClone->end_time = $child->end_time
+                    ? Carbon::parse($child->end_time)->addMinutes($delayMinutes)
+                    : null;
+            }
+
+            $clonedMap[$childClone->id] = $childClone;
+            $visited[$childClone->id] = true;
+            $result[] = $childClone;
+
+            // ⬇️  **REKURSIKAN CLONE-NYA**, bukan objek asli
+            $result = array_merge(
+                $result,
+                $this->simulateDelays($childClone, $delayMinutes, $visited, $clonedMap)
+            );
         }
 
         return $result;
     }
-
 
     private function isScheduleConflict(Schedule $schedule): bool
     {
@@ -226,7 +312,8 @@ class ScheduleController extends Controller
     {
         $next = Schedule::where('previous_schedule_id', $schedule->id)->first();
 
-        if (!$next) return;
+        if (!$next)
+            return;
 
         $duration = Carbon::parse($next->end_time)->diffInMinutes(Carbon::parse($next->start_time));
 
