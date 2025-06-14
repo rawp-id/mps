@@ -15,7 +15,7 @@ class ScheduleController extends Controller
 {
     public function index()
     {
-        $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->paginate(10);
+        $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
         return view('schedules.index', compact('schedules'));
     }
 
@@ -101,15 +101,16 @@ class ScheduleController extends Controller
     //     }
     // }
 
-    public function addDelay(Request $request, $scheduleId)
+    public function addDelay(Request $request, $schedule)
     {
         $delayMinutes = (int) $request->input('delay_minutes');
-        $original = Schedule::findOrFail($scheduleId);
+        $original = Schedule::findOrFail($schedule);
+        // dd($original, $delayMinutes);
 
         try {
-            $schedules = $this->simulateGraphDelay($original->id, 30);
+            $schedules = $this->simulateGraphDelay($original->id, $delayMinutes);
 
-            dd($schedules);
+            // dd($schedules);
 
             // Simulasikan semua delay dan hasilkan daftar schedule baru
             // $schedules = $this->simulateDelays($original, $delayMinutes);
@@ -125,14 +126,18 @@ class ScheduleController extends Controller
             // }
 
             // Validasi: shipment check
-            foreach ($schedules as $schedule) {
-                if ($schedule->is_final_process) {
-                    $shippingDate = optional($schedule->product)->shipping_date;
-                    if ($shippingDate && $schedule->end_time && $schedule->end_time->gt(Carbon::parse($shippingDate))) {
-                        throw new \Exception("Final schedule for product {$schedule->product_id} exceeds shipping date ({$shippingDate})");
-                    }
-                }
-            }
+            // foreach ($schedules as $schedule) {
+            //     if ($schedule->is_final_process) {
+            //         // dd($schedule);
+            //         $shippingDate = optional($schedule->product)->shipping_date;
+            //         if ($shippingDate && $schedule->end_time && $schedule->end_time->gt(Carbon::parse($shippingDate))) {
+            //             return redirect()->back()->with(
+            //                 'error',
+            //                 "Schedule ID {$schedule->id} exceeds the shipping deadline of product ID {$schedule->product_id}."
+            //             );
+            //         }
+            //     }
+            // }
 
             // Semua valid → Simpan perubahan
             foreach ($schedules as $schedule) {
@@ -150,18 +155,23 @@ class ScheduleController extends Controller
     public function simulateGraphDelay($scheduleId, $delayMinutes)
     {
         $schedules = Schedule::all(); // ambil semua jadwal
+        // dd($schedules);
+
         $graph = new ScheduleGraph($schedules);
 
         $graph->propagateDelay($scheduleId, $delayMinutes);
 
         $updated = $graph->getUpdatedSchedules();
+        // dd($updated);
 
         echo "Original Schedule ID: {$scheduleId} with delay of {$delayMinutes} minutes<br>";
 
         // foreach data awal
         foreach ($schedules as $schedule) {
             if (isset($updated[$schedule->id])) {
-                echo "Original Schedule {$schedule->id} start: {$schedule->start_time}, end: {$schedule->end_time}<br>";
+                $startMark = $schedule->is_start_process ? '✅' : '';
+                $finalMark = $schedule->is_final_process ? '🏁' : '';
+                echo "Original Schedule {$schedule->id} - Product {$schedule->product_id} - Process {$schedule->process_id} start: {$schedule->start_time}, end: {$schedule->end_time} {$startMark}{$finalMark}<br>";
             }
         }
 
@@ -169,10 +179,12 @@ class ScheduleController extends Controller
 
         // foreach data yang sudah diupdate
         foreach ($updated as $node) {
-            echo "Schedule {$node->id} new start: {$node->start_time}, new end: {$node->end_time}<br>";
+            $startMark = $node->is_start_process ? '✅' : '';
+            $finalMark = $node->is_final_process ? '🏁' : '';
+            echo "Schedule {$node->id} - Product {$node->product_id} - Process {$node->process_id} new start: {$node->start_time}, new end: {$node->end_time} {$startMark}{$finalMark}<br>";
         }
 
-        // return $updated;
+        return $updated;
     }
 
 

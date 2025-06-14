@@ -81,6 +81,26 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Product 2',
                 'shipping_date' => now()->addHours(2.5),
             ]),
+            Product::create([
+                'code' => 'P003',
+                'name' => 'Product 3',
+                'shipping_date' => now()->addHours(3),
+            ]),
+            // Product::create([
+            //     'code' => 'P004',
+            //     'name' => 'Product 4',
+            //     'shipping_date' => now()->addHours(3.5),
+            // ]),
+            // Product::create([
+            //     'code' => 'P005',
+            //     'name' => 'Product 5',
+            //     'shipping_date' => now()->addHours(4),
+            // ]),
+            // Product::create([
+            //     'code' => 'P006',
+            //     'name' => 'Product 6',
+            //     'shipping_date' => now()->addHours(4.5),
+            // ]),
         ];
 
         $baseTime = Carbon::create(2025, 5, 7, 8, 0, 0);
@@ -93,11 +113,11 @@ class DatabaseSeeder extends Seeder
 
         foreach ($products as $product) {
             $prevScheduleId = null;
-            $prevStartTime = $product->shipping_date->copy()->subMinutes(60);
+            $prevEndTime = $baseTime->copy(); // jadwal dimulai dari baseTime
 
             $tempSchedules = [];
 
-            for ($i = 5; $i >= 1; $i--) {
+            for ($i = 1; $i <= 5; $i++) {
                 $planSpeed = $speeds[$i - 1];
                 $conversion = $planSpeed / $quantity;
                 $duration = $conversion * 60;
@@ -105,26 +125,22 @@ class DatabaseSeeder extends Seeder
                 $machineId = $i;
                 $machineReady = $machineAvailableAt[$machineId]->copy();
 
-                $end = $prevStartTime->copy();
-                $start = $end->copy()->subMinutes($duration);
+                $start = max($prevEndTime, $machineReady); // pilih waktu paling lambat
+                $end = $start->copy()->addMinutes($duration);
 
-                if ($machineReady->gt($start)) {
-                    $start = $machineReady->copy();
-                    $end = $start->copy()->addMinutes($duration);
-
-                    if ($end->gt($product->shipping_date)) {
-                        echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
-                        break;
-                    }
+                if ($end->gt($product->shipping_date)) {
+                    echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
+                    break;
                 }
 
                 $tempSchedules[] = [
                     'product_id' => $product->id,
                     'process_id' => $i,
                     'machine_id' => $machineId,
-                    'previous_schedule_id' => null,
-                    'process_dependency_id' => null, // to be set later
-                    'is_final_prosess' => $i == 5 ? true : false, // last process is final
+                    'previous_schedule_id' => null, // set nanti
+                    'process_dependency_id' => null, // set nanti
+                    'is_start_process' => $i == 1,
+                    'is_final_process' => $i == 5,
                     'quantity' => $quantity,
                     'plan_speed' => $planSpeed,
                     'conversion_value' => $conversion,
@@ -133,19 +149,15 @@ class DatabaseSeeder extends Seeder
                     'end_time' => $end,
                 ];
 
-                $machineAvailableAt[$machineId] = $start->copy();
-                $prevStartTime = $start->copy();
+                // Update waktu siap mesin dan waktu selesai proses
+                $machineAvailableAt[$machineId] = $end->copy();
+                $prevEndTime = $end->copy(); // proses selanjutnya mulai setelah ini
             }
 
-            // INSERT tempSchedules ASCENDING by process_id
-            usort($tempSchedules, fn($a, $b) => $a['process_id'] <=> $b['process_id']);
-
-            $prevScheduleId = null;
-
+            // Insert schedules
             foreach ($tempSchedules as $scheduleData) {
                 $scheduleData['previous_schedule_id'] = $prevScheduleId;
 
-                // 👇 This is the global dependency antar product
                 $lastDependencyScheduleId = $lastSchedulePerProcess[$scheduleData['process_id']] ?? null;
                 $scheduleData['process_dependency_id'] = $lastDependencyScheduleId;
 
@@ -155,11 +167,80 @@ class DatabaseSeeder extends Seeder
                     ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
 
                 $prevScheduleId = $schedule->id;
-
-                // Update global dependency per process
                 $lastSchedulePerProcess[$scheduleData['process_id']] = $schedule->id;
             }
         }
+
+
+        // foreach ($products as $product) {
+        //     $prevScheduleId = null;
+        //     $prevStartTime = $product->shipping_date->copy()->subMinutes(60);
+
+        //     $tempSchedules = [];
+
+        //     for ($i = 5; $i >= 1; $i--) {
+        //         $planSpeed = $speeds[$i - 1];
+        //         $conversion = $planSpeed / $quantity;
+        //         $duration = $conversion * 60;
+
+        //         $machineId = $i;
+        //         $machineReady = $machineAvailableAt[$machineId]->copy();
+
+        //         $end = $prevStartTime->copy();
+        //         $start = $end->copy()->subMinutes($duration);
+
+        //         if ($machineReady->gt($start)) {
+        //             $start = $machineReady->copy();
+        //             $end = $start->copy()->addMinutes($duration);
+
+        //             if ($end->gt($product->shipping_date)) {
+        //                 echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
+        //                 break;
+        //             }
+        //         }
+
+        //         $tempSchedules[] = [
+        //             'product_id' => $product->id,
+        //             'process_id' => $i,
+        //             'machine_id' => $machineId,
+        //             'previous_schedule_id' => null,
+        //             'process_dependency_id' => null, // to be set later
+        //             'is_final_process' => $i == 5 ? true : false, // last process is final
+        //             'quantity' => $quantity,
+        //             'plan_speed' => $planSpeed,
+        //             'conversion_value' => $conversion,
+        //             'plan_duration' => $duration,
+        //             'start_time' => $start,
+        //             'end_time' => $end,
+        //         ];
+
+        //         $machineAvailableAt[$machineId] = $start->copy();
+        //         $prevStartTime = $start->copy();
+        //     }
+
+        //     // INSERT tempSchedules ASCENDING by process_id
+        //     usort($tempSchedules, fn($a, $b) => $a['process_id'] <=> $b['process_id']);
+
+        //     $prevScheduleId = null;
+
+        //     foreach ($tempSchedules as $scheduleData) {
+        //         $scheduleData['previous_schedule_id'] = $prevScheduleId;
+
+        //         // 👇 This is the global dependency antar product
+        //         $lastDependencyScheduleId = $lastSchedulePerProcess[$scheduleData['process_id']] ?? null;
+        //         $scheduleData['process_dependency_id'] = $lastDependencyScheduleId;
+
+        //         $schedule = Schedule::create($scheduleData);
+
+        //         echo "Inserted Product {$schedule->product_id} Process {$schedule->process_id} → Schedule ID {$schedule->id} → Dependency: " .
+        //             ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
+
+        //         $prevScheduleId = $schedule->id;
+
+        //         // Update global dependency per process
+        //         $lastSchedulePerProcess[$scheduleData['process_id']] = $schedule->id;
+        //     }
+        // }
 
 
         // foreach ($products as $product) {
