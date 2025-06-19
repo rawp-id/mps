@@ -83,23 +83,92 @@ class ScheduleController extends Controller
         return redirect()->route('schedules.index')->with('success', 'Schedule updated successfully.');
     }
 
-    // public function addDelay(Request $request, $schedule)
-    // {
-    //     // dd($request->all(), $schedule);
-    //     $delayMinutes = (int) $request->input('delay_minutes');
-    //     $schedule_data = Schedule::findOrFail($schedule);
-    //     // dd($schedule_data, $delayMinutes);
+    public function delaySchedule(Request $request)
+    {
+        $schedules = Schedule::all();
+        $thisSchedule = Schedule::findOrFail(2);
 
-    //     try {
-    //         $this->applyDelay($schedule_data, $delayMinutes);
-    //         // return response()->json(['message' => 'Delay applied successfully']);
-    //         return redirect()->route('schedules.index')->with('success', 'Delay applied successfully.');
-    //     } catch (\Exception $e) {
-    //         dd($e->getMessage());
-    //         // return response()->json(['error' => $e->getMessage()], 400);
-    //         return redirect()->back()->withErrors(['error' => $e->getMessage()]);
-    //     }
-    // }
+        $shipmentDeadline = Carbon::parse($thisSchedule->product->shipping_date);
+
+        $endProcessProduct = null;
+
+        $delayMinutes = (int) $request->input('delay_minutes', 10);
+
+        foreach ($schedules as $item) {
+            if ($item->product_id == $thisSchedule->product_id && $item->is_final_process) {
+                $endProcessProduct = $item;
+                break;
+            }
+        }
+
+        $endTimeProcessProduct = Carbon::parse($endProcessProduct->end_time);
+
+        if($endTimeProcessProduct->greaterThan($shipmentDeadline)) {
+            return redirect()->back()->withErrors(['error' => 'Proses ini melebihi batas pengiriman produk.']);
+        }
+
+        // Geser semua proses dari thisSchedule sampai endProcessProduct (berdasarkan previous_schedule_id chain)
+        $current = $thisSchedule;
+
+        while ($current && $current->id != $endProcessProduct->id) {
+            $current->start_time = Carbon::parse($current->start_time)->addMinutes($delayMinutes);
+            $current->end_time = Carbon::parse($current->end_time)->addMinutes($delayMinutes);
+            $current->save();
+
+            // Cari proses berikutnya dalam chain produk yang sama
+            $current = Schedule::where('previous_schedule_id', $current->id)
+            ->where('product_id', $thisSchedule->product_id)
+            ->first();
+        }
+
+        // Update endProcessProduct juga
+        if ($current && $current->id == $endProcessProduct->id) {
+            $current->start_time = Carbon::parse($current->start_time)->addMinutes($delayMinutes);
+            $current->end_time = Carbon::parse($current->end_time)->addMinutes($delayMinutes);
+            $current->save();
+        }
+
+        $schedulesInProcess = Schedule::where('process_id', $thisSchedule->process_id)->get();
+
+        foreach ($schedulesInProcess as $schedule) {
+            if ($schedule->id != $thisSchedule->id) {
+                // Geser semua proses yang memiliki process_dependency_id ke depan
+                $schedule->start_time = Carbon::parse($schedule->start_time)->addMinutes($delayMinutes);
+                $schedule->end_time = Carbon::parse($schedule->end_time)->addMinutes($delayMinutes);
+                $schedule->save();
+            }
+        }
+
+        $schedulesUpdateInProcess = Schedule::where('process_id', $thisSchedule->process_id)->get();
+
+        foreach ($schedulesUpdateInProcess as $schedule) {
+            $current = $schedule;
+            while ($current) {
+            $lastTime = Carbon::parse($current->end_time);
+            $nextSchedule = Schedule::where('previous_schedule_id', $current->id)
+                ->where('product_id', $current->product_id)
+                ->first();
+            if ($nextSchedule) {
+                $nextSchedule->start_time = $lastTime;
+                $nextSchedule->end_time = $lastTime->copy()->addMinutes($nextSchedule->plan_duration);
+                $nextSchedule->save();
+
+                // lanjut ke proses berikutnya
+                if ($nextSchedule->is_final_process) {
+                break;
+                }
+                $current = $nextSchedule;
+            } else {
+                break;
+            }
+            }
+        }
+
+
+
+        dd('All schedules updated successfully.');
+
+    }
 
     public function addDelay(Request $request, $schedule)
     {
@@ -164,25 +233,25 @@ class ScheduleController extends Controller
         $updated = $graph->getUpdatedSchedules();
         // dd($updated);
 
-        echo "Original Schedule ID: {$scheduleId} with delay of {$delayMinutes} minutes<br>";
+        // echo "Original Schedule ID: {$scheduleId} with delay of {$delayMinutes} minutes<br>";
 
-        // foreach data awal
-        foreach ($schedules as $schedule) {
-            if (isset($updated[$schedule->id])) {
-                $startMark = $schedule->is_start_process ? '✅' : '';
-                $finalMark = $schedule->is_final_process ? '🏁' : '';
-                echo "Original Schedule {$schedule->id} - Product {$schedule->product_id} - Process {$schedule->process_id} start: {$schedule->start_time}, end: {$schedule->end_time} {$startMark}{$finalMark}<br>";
-            }
-        }
+        // // foreach data awal
+        // foreach ($schedules as $schedule) {
+        //     if (isset($updated[$schedule->id])) {
+        //         $startMark = $schedule->is_start_process ? '✅' : '';
+        //         $finalMark = $schedule->is_final_process ? '🏁' : '';
+        //         echo "Original Schedule {$schedule->id} - Product {$schedule->product_id} - Process {$schedule->process_id} start: {$schedule->start_time}, end: {$schedule->end_time} {$startMark}{$finalMark}<br>";
+        //     }
+        // }
 
-        echo "<br>Updated Schedules:<br>";
+        // echo "<br>Updated Schedules:<br>";
 
-        // foreach data yang sudah diupdate
-        foreach ($updated as $node) {
-            $startMark = $node->is_start_process ? '✅' : '';
-            $finalMark = $node->is_final_process ? '🏁' : '';
-            echo "Schedule {$node->id} - Product {$node->product_id} - Process {$node->process_id} new start: {$node->start_time}, new end: {$node->end_time} {$startMark}{$finalMark}<br>";
-        }
+        // // foreach data yang sudah diupdate
+        // foreach ($updated as $node) {
+        //     $startMark = $node->is_start_process ? '✅' : '';
+        //     $finalMark = $node->is_final_process ? '🏁' : '';
+        //     echo "Schedule {$node->id} - Product {$node->product_id} - Process {$node->process_id} new start: {$node->start_time}, new end: {$node->end_time} {$startMark}{$finalMark}<br>";
+        // }
 
         return $updated;
     }

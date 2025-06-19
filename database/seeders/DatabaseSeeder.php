@@ -86,21 +86,21 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Product 3',
                 'shipping_date' => now()->addHours(3),
             ]),
-            // Product::create([
-            //     'code' => 'P004',
-            //     'name' => 'Product 4',
-            //     'shipping_date' => now()->addHours(3.5),
-            // ]),
-            // Product::create([
-            //     'code' => 'P005',
-            //     'name' => 'Product 5',
-            //     'shipping_date' => now()->addHours(4),
-            // ]),
-            // Product::create([
-            //     'code' => 'P006',
-            //     'name' => 'Product 6',
-            //     'shipping_date' => now()->addHours(4.5),
-            // ]),
+            Product::create([
+                'code' => 'P004',
+                'name' => 'Product 4',
+                'shipping_date' => now()->addHours(3.5),
+            ]),
+            Product::create([
+                'code' => 'P005',
+                'name' => 'Product 5',
+                'shipping_date' => now()->addHours(4),
+            ]),
+            Product::create([
+                'code' => 'P006',
+                'name' => 'Product 6',
+                'shipping_date' => now()->addHours(4.5),
+            ]),
         ];
 
         $baseTime = Carbon::create(2025, 5, 7, 8, 0, 0);
