@@ -10,6 +10,11 @@ Route::get('/', function () {
 // Route::get('schedules/{schedule}/delay', [ScheduleController::class, 'addDelay'])->name('schedules.delay');
 Route::post('schedules/{schedule}/delay', [ScheduleController::class, 'addDelay'])->name('schedules.delay');
 
-Route::get('test', [ScheduleController::class, 'delaySchedule'])->name('schedules.test');
+Route::get('add', [ScheduleController::class, 'delaySchedule'])->name('schedules.add');
+Route::get('min', [ScheduleController::class, 'advanceSchedule'])->name('schedules.min');
+
+Route::get('gantt', [ScheduleController::class, 'gantt'])->name('schedules.gantt');
+
+Route::get('schedules/{productId}/product', [ScheduleController::class, 'showByProduct'])->name('schedules.show.product');
 
 Route::resource('schedules', ScheduleController::class);

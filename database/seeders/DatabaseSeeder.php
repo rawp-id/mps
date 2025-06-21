@@ -106,6 +106,8 @@ class DatabaseSeeder extends Seeder
         $baseTime = Carbon::create(2025, 5, 7, 8, 0, 0);
         $speeds = [8000, 4000, 2000, 2000, 4000];
         $quantity = 8000;
+        $gapBetweenProcesses = 20; // menit
+        $gapBetweenDependencies = 20; // menit antar dependency
 
         $machineAvailableAt = collect(range(1, 5))->mapWithKeys(fn($id) => [$id => $baseTime->copy()])->toArray();
 
@@ -118,56 +120,73 @@ class DatabaseSeeder extends Seeder
             $tempSchedules = [];
 
             for ($i = 1; $i <= 5; $i++) {
-                $planSpeed = $speeds[$i - 1];
-                $conversion = $planSpeed / $quantity;
-                $duration = $conversion * 60;
+            $planSpeed = $speeds[$i - 1];
+            $conversion = $planSpeed / $quantity;
+            $duration = $conversion * 60;
 
-                $machineId = $i;
-                $machineReady = $machineAvailableAt[$machineId]->copy();
+            $machineId = $i;
+            $machineReady = $machineAvailableAt[$machineId]->copy();
 
-                $start = max($prevEndTime, $machineReady); // pilih waktu paling lambat
-                $end = $start->copy()->addMinutes($duration);
-
-                if ($end->gt($product->shipping_date)) {
-                    echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
-                    break;
+            // Cari dependency schedule (product sebelumnya pada process yang sama)
+            $lastDependencyScheduleId = $lastSchedulePerProcess[$i] ?? null;
+            $dependencyEndTime = null;
+            if ($lastDependencyScheduleId) {
+                $dependencySchedule = Schedule::find($lastDependencyScheduleId);
+                if ($dependencySchedule) {
+                $dependencyEndTime = Carbon::parse($dependencySchedule->end_time)->addMinutes($gapBetweenDependencies);
                 }
+            }
 
-                $tempSchedules[] = [
-                    'product_id' => $product->id,
-                    'process_id' => $i,
-                    'machine_id' => $machineId,
-                    'previous_schedule_id' => null, // set nanti
-                    'process_dependency_id' => null, // set nanti
-                    'is_start_process' => $i == 1,
-                    'is_final_process' => $i == 5,
-                    'quantity' => $quantity,
-                    'plan_speed' => $planSpeed,
-                    'conversion_value' => $conversion,
-                    'plan_duration' => $duration,
-                    'start_time' => $start,
-                    'end_time' => $end,
-                ];
+            // Hitung waktu mulai: max(prevEndTime + gap, machineReady, dependencyEndTime)
+            $startCandidates = [$machineReady];
+            if ($i == 1) {
+                $startCandidates[] = $prevEndTime;
+            } else {
+                $startCandidates[] = $prevEndTime->copy()->addMinutes($gapBetweenProcesses);
+            }
+            if ($dependencyEndTime) {
+                $startCandidates[] = $dependencyEndTime;
+            }
+            $start = collect($startCandidates)->max();
+            $end = $start->copy()->addMinutes($duration);
 
-                // Update waktu siap mesin dan waktu selesai proses
-                $machineAvailableAt[$machineId] = $end->copy();
-                $prevEndTime = $end->copy(); // proses selanjutnya mulai setelah ini
+            if ($end->gt($product->shipping_date)) {
+                echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
+                break;
+            }
+
+            $tempSchedules[] = [
+                'product_id' => $product->id,
+                'process_id' => $i,
+                'machine_id' => $machineId,
+                'previous_schedule_id' => null, // set nanti
+                'process_dependency_id' => $lastDependencyScheduleId, // set sekarang
+                'is_start_process' => $i == 1,
+                'is_final_process' => $i == 5,
+                'quantity' => $quantity,
+                'plan_speed' => $planSpeed,
+                'conversion_value' => $conversion,
+                'plan_duration' => $duration,
+                'start_time' => $start,
+                'end_time' => $end,
+            ];
+
+            // Update waktu siap mesin dan waktu selesai proses
+            $machineAvailableAt[$machineId] = $end->copy();
+            $prevEndTime = $end->copy(); // proses selanjutnya mulai setelah ini
             }
 
             // Insert schedules
             foreach ($tempSchedules as $scheduleData) {
-                $scheduleData['previous_schedule_id'] = $prevScheduleId;
+            $scheduleData['previous_schedule_id'] = $prevScheduleId;
 
-                $lastDependencyScheduleId = $lastSchedulePerProcess[$scheduleData['process_id']] ?? null;
-                $scheduleData['process_dependency_id'] = $lastDependencyScheduleId;
+            $schedule = Schedule::create($scheduleData);
 
-                $schedule = Schedule::create($scheduleData);
+            echo "Inserted Product {$schedule->product_id} Process {$schedule->process_id} → Schedule ID {$schedule->id} → Dependency: " .
+                ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
 
-                echo "Inserted Product {$schedule->product_id} Process {$schedule->process_id} → Schedule ID {$schedule->id} → Dependency: " .
-                    ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
-
-                $prevScheduleId = $schedule->id;
-                $lastSchedulePerProcess[$scheduleData['process_id']] = $schedule->id;
+            $prevScheduleId = $schedule->id;
+            $lastSchedulePerProcess[$scheduleData['process_id']] = $schedule->id;
             }
         }
 
