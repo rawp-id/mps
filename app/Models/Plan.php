@@ -2,12 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Route;
 use Illuminate\Database\Eloquent\Model;
 
 class Plan extends Model
 {
     //
     protected $guarded = ['id'];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        Route::model('plan', self::class); // <-- ini kuncinya
+    }
 
     public function product()
     {

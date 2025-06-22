@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PlanSimulateController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ScheduleController;
 
@@ -18,3 +19,10 @@ Route::get('gantt', [ScheduleController::class, 'gantt'])->name('schedules.gantt
 Route::get('schedules/{productId}/product', [ScheduleController::class, 'showByProduct'])->name('schedules.show.product');
 
 Route::resource('schedules', ScheduleController::class);
+
+Route::get('/plan-simulate', [PlanSimulateController::class, 'index'])->name('plan-simulate.index');
+Route::get('/plan-simulate/create', [PlanSimulateController::class, 'create'])->name('plan-simulate.create');
+Route::post('/plan-simulate', [PlanSimulateController::class, 'store'])->name('plan-simulate.store');
+Route::get('/plan-simulate/{plan}', [PlanSimulateController::class, 'show'])->name('plan-simulate.show');
+Route::delete('/plan-simulate/{plan}', [PlanSimulateController::class, 'destroy'])->name('plan-simulate.destroy');
+

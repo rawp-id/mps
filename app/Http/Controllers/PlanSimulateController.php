@@ -28,7 +28,6 @@ class PlanSimulateController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:plans,slug',
             'product_id' => 'required|exists:products,id',
             'description' => 'nullable|string|max:1000',
         ]);
@@ -103,7 +102,7 @@ class PlanSimulateController extends Controller
             $end = $start->copy()->addMinutes($duration);
 
             // Simpan schedule ke database
-            $schedule = Schedule::create([
+            $schedule = SimulateSchedule::create([
                 'plan_id' => $plan->id,
                 'product_id' => $product->id,
                 'process_id' => $i,
@@ -129,4 +128,32 @@ class PlanSimulateController extends Controller
 
         return redirect()->route('plan-simulate.index')->with('success', 'Plan dan simulasi jadwal berhasil dibuat tanpa bentrok.');
     }
+
+    public function show($plan)
+    {
+        // dd($plan);
+        $plan = Plan::with('product')->findOrFail($plan);
+
+        $schedules = SimulateSchedule::with(['machine', 'product', 'process'])
+            ->where('plan_id', $plan->id)
+            ->get();
+
+        // dd($schedules);
+
+        return view('plan-simulate.show', compact('plan', 'schedules'));
+    }
+
+    public function destroy($plan)
+    {
+        $plan = Plan::findOrFail($plan);
+        
+        // Hapus semua jadwal simulasi terkait plan ini
+        SimulateSchedule::where('plan_id', $plan->id)->delete();
+
+        // Hapus plan itu sendiri
+        $plan->delete();
+
+        return redirect()->route('plan-simulate.index')->with('success', 'Plan dan semua jadwal simulasi berhasil dihapus.');
+    }
+
 }

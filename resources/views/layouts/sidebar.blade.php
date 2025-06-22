@@ -15,8 +15,8 @@
                         <i class="bi bi-calendar me-2"></i> Gantt Chart
                     </a>
                 <li class="nav-item">
-                    <a class="nav-link text-white" href="{{ route('schedules.create') }}">
-                        <i class="bi bi-plus-circle me-2"></i> Plan
+                    <a class="nav-link text-white" href="{{ route('plan-simulate.index') }}">
+                        <i class="bi bi-plus-circle me-2"></i> Plan Simulate
                     </a>
                 </li>
             </ul>

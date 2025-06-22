@@ -18,7 +18,7 @@
                 data-bs-target="#offcanvasExample" aria-controls="offcanvasExample">
                 <i class="bi bi-list"></i> Menu
             </button>
-            <a class="navbar-brand" href="{{ route('schedules.index') }}">Schedule Management</a>
+            <a class="navbar-brand" href="{{ route('schedules.index') }}">ERP</a>
         </div>
     </nav>
 

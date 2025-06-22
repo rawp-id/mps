@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('plans', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('slug')->unique();
             $table->string('description')->nullable();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->timestamps();
