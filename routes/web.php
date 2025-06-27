@@ -1,8 +1,9 @@
 <?php
 
-use App\Http\Controllers\PlanSimulateController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\PlanSimulateController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -15,6 +16,8 @@ Route::get('add', [ScheduleController::class, 'delaySchedule'])->name('schedules
 Route::get('min', [ScheduleController::class, 'advanceSchedule'])->name('schedules.min');
 
 Route::get('gantt', [ScheduleController::class, 'gantt'])->name('schedules.gantt');
+Route::get('gantt/machines', [ScheduleController::class, 'ganttByMachine'])->name('schedules.gantt.machine');
+Route::get('gantt/processes', [ScheduleController::class, 'ganttByProcess'])->name('schedules.gantt.process');
 
 Route::get('schedules/{productId}/product', [ScheduleController::class, 'showByProduct'])->name('schedules.show.product');
 
@@ -26,3 +29,8 @@ Route::post('/plan-simulate', [PlanSimulateController::class, 'store'])->name('p
 Route::get('/plan-simulate/{plan}', [PlanSimulateController::class, 'show'])->name('plan-simulate.show');
 Route::delete('/plan-simulate/{plan}', [PlanSimulateController::class, 'destroy'])->name('plan-simulate.destroy');
 
+// Import routes
+Route::get('products/import', [ProductController::class, 'importForm'])->name('products.import');
+Route::post('products/import-preview', [ProductController::class, 'importPreview'])->name('products.import.preview');
+Route::post('products/import-store', [ProductController::class, 'importStore'])->name('products.import.store');
+Route::resource('products', ProductController::class);

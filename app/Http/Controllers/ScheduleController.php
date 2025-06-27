@@ -21,14 +21,14 @@ class ScheduleController extends Controller
 
     public function gantt()
     {
-        $products = Product::orderBy('id')->paginate(10);
-        $productIds = $products->pluck('id');
+        // $products = Product::orderBy('id')->paginate(10);
+        // $productIds = $products->pluck('id');
 
-        $schedules = Schedule::with(['product', 'process', 'machine'])
-            ->whereIn('product_id', $productIds)
-            ->orderBy('product_id')
-            ->orderBy('start_time') // <-- pastikan ini nama field urutanmu
-            ->get();
+        // $schedules = Schedule::with(['product', 'process', 'machine'])
+        //     ->whereIn('product_id', $productIds)
+        //     ->orderBy('product_id')
+        //     ->orderBy('start_time') // <-- pastikan ini nama field urutanmu
+        //     ->get();
             // dd($schedules);
 
         // $schedules = Schedule::with(['product', 'process', 'machine'])
@@ -39,13 +39,23 @@ class ScheduleController extends Controller
         //     ->paginate(10);
         // Ambil 10 product per halaman
         $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
-        return view('schedules.gantt-chart', compact('schedules', 'products'));
+        return view('schedules.gantt-chart', compact('schedules'));
     }
 
     public function ganttByMachine()
     {
         $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
-        return view('schedules.gantt-chart', compact('schedules'));
+        return view('schedules.gantt-chart-machine', compact('schedules'));
+    }
+
+    public function ganttByProcess()
+    {
+        $schedules = Schedule::with(['product', 'process', 'machine'])
+            ->orderBy('process_id')
+            ->latest()
+            ->get();
+
+        return view('schedules.gantt-chart-process', compact('schedules'));
     }
 
     public function showByProduct($productId)

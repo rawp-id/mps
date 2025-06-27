@@ -12,23 +12,11 @@
                 Filter
             </button>
             <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-                <li><a class="dropdown-item active" href="{{ route('schedules.gantt') }}">Products</a></li>
+                <li><a class="dropdown-item" href="{{ route('schedules.gantt') }}">Products</a></li>
                 <li><a class="dropdown-item" href="{{ route('schedules.gantt.machine') }}">Machines</a></li>
-                <li><a class="dropdown-item" href="{{ route('schedules.gantt.process') }}">Processes</a></li>
+                <li><a class="dropdown-item active" href="{{ route('schedules.gantt.process') }}">Processes</a></li>
             </ul>
         </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('.dropdown-item[data-product]').forEach(function(item) {
-                    item.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        const productId = this.getAttribute('data-product');
-                        // TODO: Implement filtering logic for the timeline based on productId
-                        // Example: filterTimeline(productId);
-                    });
-                });
-            });
-        </script>
     </div>
     {{-- <div class="mt-5">
         {{ $products->links('pagination::bootstrap-5') }}
@@ -49,21 +37,21 @@
             const items = [];
 
             // 1️⃣ Kumpulkan produk unik dengan ID numerik
-            const productMap = new Map();
+            const processMap = new Map();
             schedules.forEach(s => {
-                const id = s.product ? parseInt(s.product.id) : 0;
-                const name = s.product?.name ?? 'Unknown Product';
-                productMap.set(id, name);
+                const id = s.process ? parseInt(s.process.id) : 0;
+                const processName = s.process?.name ?? 'Unknown Product';
+                processMap.set(id, processName);
             });
 
             // 2️⃣ Buat array groups terurut ID ASC
-            const sortedProducts = Array.from(productMap.entries())
+            const sortedProducts = Array.from(processMap.entries())
                 .sort((a, b) => a[0] - b[0]); // sort by numeric ID
 
-            sortedProducts.forEach(([id, name]) => {
+            sortedProducts.forEach(([id, processName]) => {
                 groups.push({
                     id,
-                    content: name
+                    content: processName
                 });
             });
 
@@ -71,8 +59,8 @@
             schedules.forEach(s => {
                 items.push({
                     id: s.id,
-                    group: s.product ? parseInt(s.product.id) : 0,
-                    content: s.process?.name ?? 'Process',
+                    group: s.process ? parseInt(s.process.id) : 0,
+                    content: s.product?.name ?? 'Unknown Product',
                     start: s.start_time,
                     end: s.end_time
                 });
