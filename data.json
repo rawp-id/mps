@@ -1,0 +1,588 @@
+{
+    "cols": [
+        {
+            "id": "",
+            "label": "ID",
+            "pattern": "",
+            "type": "string"
+        },
+        {
+            "id": "",
+            "label": "Task Name",
+            "pattern": "",
+            "type": "string"
+        },
+        {
+            "id": "",
+            "label": "Product Name",
+            "pattern": "",
+            "type": "string"
+        },
+        {
+            "id": "",
+            "label": "Start Date",
+            "pattern": "",
+            "type": "date"
+        },
+        {
+            "id": "",
+            "label": "End Date",
+            "pattern": "",
+            "type": "date"
+        },
+        {
+            "id": "",
+            "label": "Duration",
+            "pattern": "",
+            "type": "number"
+        },
+        {
+            "id": "",
+            "label": "Percent Complete",
+            "pattern": "",
+            "type": "number"
+        },
+        {
+            "id": "",
+            "label": "Dependencies",
+            "pattern": "",
+            "type": "string"
+        }
+    ],
+    "rows": [
+        {
+            "c": [
+                {
+                    "v": "51"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11 - Cutting"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 21, 20, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 22, 20, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": null
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "52"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11 - Printing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 22, 40, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 23, 10, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "51,47"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "53"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11 - Die-cut"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 23, 30, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 23, 45, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "52,48"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "54"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11 - Glueing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 0, 5, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 0, 20, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "53,49"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "55"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11 - Packing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 11"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 0, 40, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 10, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "54,50"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "56"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12 - Cutting"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 22, 40, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 7, 23, 40, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": ",51"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "57"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12 - Printing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12"
+                },
+                {
+                    "v": "Date(2025, 4, 8)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 0, 30, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "56,52"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "58"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12 - Die-cut"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 0, 50, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 5, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "57,53"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "59"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12 - Glueing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 25, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 40, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "58,54"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "60"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12 - Packing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 12"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 2, 0, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 2, 30, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "59,55"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "61"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13 - Cutting"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13"
+                },
+                {
+                    "v": "Date(2025, 4, 8)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 0, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": ",56"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "62"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13 - Printing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 20, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 50, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "61,57"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "63"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13 - Die-cut"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 2, 10, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 2, 25, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "62,58"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "64"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13 - Glueing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 2, 45, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 3, 0, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "63,59"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "65"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13 - Packing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 13"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 3, 20, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 3, 50, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "64,60"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "66"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14 - Cutting"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 1, 20, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 2, 20, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": ",61"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "67"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14 - Printing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 2, 40, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 3, 10, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "66,62"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "68"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14 - Die-cut"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 3, 30, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 3, 45, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "67,63"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v": "69"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14 - Glueing"
+                },
+                {
+                    "v": "WK KALENDER DUDUK 2017 COVER BALIK KERTAS 14"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 4, 5, 0)"
+                },
+                {
+                    "v": "Date(2025, 4, 8, 4, 20, 0)"
+                },
+                {
+                    "v": null
+                },
+                {
+                    "v": 0
+                },
+                {
+                    "v": "68,64"
+                }
+            ]
+        },
+        {
+            "c": [
+                {
+                    "v"

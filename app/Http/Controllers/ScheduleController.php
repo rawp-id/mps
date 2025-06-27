@@ -21,6 +21,29 @@ class ScheduleController extends Controller
 
     public function gantt()
     {
+        $products = Product::orderBy('id')->paginate(10);
+        $productIds = $products->pluck('id');
+
+        $schedules = Schedule::with(['product', 'process', 'machine'])
+            ->whereIn('product_id', $productIds)
+            ->orderBy('product_id')
+            ->orderBy('start_time') // <-- pastikan ini nama field urutanmu
+            ->get();
+            // dd($schedules);
+
+        // $schedules = Schedule::with(['product', 'process', 'machine'])
+        //     ->select('schedules.*')
+        //     ->join('products', 'schedules.product_id', '=', 'products.id')
+        //     ->groupBy('schedules.product_id')
+        //     ->orderBy('products.id')
+        //     ->paginate(10);
+        // Ambil 10 product per halaman
+        $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
+        return view('schedules.gantt-chart', compact('schedules', 'products'));
+    }
+
+    public function ganttByMachine()
+    {
         $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
         return view('schedules.gantt-chart', compact('schedules'));
     }
@@ -32,7 +55,7 @@ class ScheduleController extends Controller
             ->latest()
             ->get();
 
-            // dd($schedules);
+        // dd($schedules);
 
         return view('schedules.product', compact('schedules'));
     }

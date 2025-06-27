@@ -70,38 +70,14 @@ class DatabaseSeeder extends Seeder
             Process::create($proccess);
         }
 
-        $products = [
-            Product::create([
-                'code' => 'P001',
-                'name' => 'Product 1',
-                'shipping_date' => now()->addHours(2),
-            ]),
-            Product::create([
-                'code' => 'P002',
-                'name' => 'Product 2',
-                'shipping_date' => now()->addHours(2.5),
-            ]),
-            Product::create([
-                'code' => 'P003',
-                'name' => 'Product 3',
-                'shipping_date' => now()->addHours(3),
-            ]),
-            Product::create([
-                'code' => 'P004',
-                'name' => 'Product 4',
-                'shipping_date' => now()->addHours(3.5),
-            ]),
-            Product::create([
-                'code' => 'P005',
-                'name' => 'Product 5',
-                'shipping_date' => now()->addHours(4),
-            ]),
-            Product::create([
-                'code' => 'P006',
-                'name' => 'Product 6',
-                'shipping_date' => now()->addHours(4.5),
-            ]),
-        ];
+        $products = [];
+        for ($i = 1; $i <= 100; $i++) {
+            $products[] = Product::create([
+            'code' => sprintf('P%03d', $i),
+            'name' => 'WK KALENDER DUDUK 2017 COVER BALIK KERTAS ' . $i,
+            'shipping_date' => now()->addHours(2 + ($i - 1) * 0.5),
+            ]);
+        }
 
         $baseTime = Carbon::create(2025, 5, 7, 8, 0, 0);
         $speeds = [8000, 4000, 2000, 2000, 4000];
