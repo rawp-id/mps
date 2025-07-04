@@ -12,12 +12,14 @@ Route::get('/', function () {
 // Route::get('schedules/{schedule}/delay', [ScheduleController::class, 'addDelay'])->name('schedules.delay');
 Route::post('schedules/{schedule}/delay', [ScheduleController::class, 'addDelay'])->name('schedules.delay');
 
-Route::get('add', [ScheduleController::class, 'delaySchedule'])->name('schedules.add');
-Route::get('min', [ScheduleController::class, 'advanceSchedule'])->name('schedules.min');
+Route::post('schedule/{id}/add', [ScheduleController::class, 'delaySchedule'])->name('schedules.add');
+Route::post('schedule/{id}/min', [ScheduleController::class, 'advanceSchedule'])->name('schedules.min');
 
 Route::get('gantt', [ScheduleController::class, 'gantt'])->name('schedules.gantt');
 Route::get('gantt/machines', [ScheduleController::class, 'ganttByMachine'])->name('schedules.gantt.machine');
 Route::get('gantt/processes', [ScheduleController::class, 'ganttByProcess'])->name('schedules.gantt.process');
+
+Route::post('schedules/{id}/updateDependencySafety', [ScheduleController::class, 'updateDependencySafe'])->name('schedules.updateDependencySafety');
 
 Route::get('schedules/{productId}/product', [ScheduleController::class, 'showByProduct'])->name('schedules.show.product');
 
@@ -33,4 +35,18 @@ Route::delete('/plan-simulate/{plan}', [PlanSimulateController::class, 'destroy'
 Route::get('products/import', [ProductController::class, 'importForm'])->name('products.import');
 Route::post('products/import-preview', [ProductController::class, 'importPreview'])->name('products.import.preview');
 Route::post('products/import-store', [ProductController::class, 'importStore'])->name('products.import.store');
+
+route::get('reset', function () {
+    \App\Models\Schedule::truncate();
+    \App\Models\SimulateSchedule::truncate();
+    \App\Models\Plan::truncate();
+    \App\Models\Product::truncate();
+    // \App\Models\Process::truncate();
+    // \App\Models\Machine::truncate();
+
+    return redirect()->back()->with('success', 'Data has been reset successfully.');
+})->name('reset');
+
+Route::get('generate/plan' , [ProductController::class, 'generatePlans'])->name('plan.generate');
+
 Route::resource('products', ProductController::class);

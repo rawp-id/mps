@@ -73,9 +73,9 @@ class DatabaseSeeder extends Seeder
         $products = [];
         for ($i = 1; $i <= 100; $i++) {
             $products[] = Product::create([
-            'code' => sprintf('P%03d', $i),
-            'name' => 'WK KALENDER DUDUK 2017 COVER BALIK KERTAS ' . $i,
-            'shipping_date' => now()->addHours(2 + ($i - 1) * 0.5),
+                'code' => sprintf('P%03d', $i),
+                'name' => 'WK KALENDER DUDUK 2017 COVER BALIK KERTAS ' . $i,
+                'shipping_date' => now()->addHours(2 + ($i - 1) * 0.5),
             ]);
         }
 
@@ -96,73 +96,73 @@ class DatabaseSeeder extends Seeder
             $tempSchedules = [];
 
             for ($i = 1; $i <= 5; $i++) {
-            $planSpeed = $speeds[$i - 1];
-            $conversion = $planSpeed / $quantity;
-            $duration = $conversion * 60;
+                $planSpeed = $speeds[$i - 1];
+                $conversion = $planSpeed / $quantity;
+                $duration = $conversion * 60;
 
-            $machineId = $i;
-            $machineReady = $machineAvailableAt[$machineId]->copy();
+                $machineId = $i;
+                $machineReady = $machineAvailableAt[$machineId]->copy();
 
-            // Cari dependency schedule (product sebelumnya pada process yang sama)
-            $lastDependencyScheduleId = $lastSchedulePerProcess[$i] ?? null;
-            $dependencyEndTime = null;
-            if ($lastDependencyScheduleId) {
-                $dependencySchedule = Schedule::find($lastDependencyScheduleId);
-                if ($dependencySchedule) {
-                $dependencyEndTime = Carbon::parse($dependencySchedule->end_time)->addMinutes($gapBetweenDependencies);
+                // Cari dependency schedule (product sebelumnya pada process yang sama)
+                $lastDependencyScheduleId = $lastSchedulePerProcess[$i] ?? null;
+                $dependencyEndTime = null;
+                if ($lastDependencyScheduleId) {
+                    $dependencySchedule = Schedule::find($lastDependencyScheduleId);
+                    if ($dependencySchedule) {
+                        $dependencyEndTime = Carbon::parse($dependencySchedule->end_time)->addMinutes($gapBetweenDependencies);
+                    }
                 }
-            }
 
-            // Hitung waktu mulai: max(prevEndTime + gap, machineReady, dependencyEndTime)
-            $startCandidates = [$machineReady];
-            if ($i == 1) {
-                $startCandidates[] = $prevEndTime;
-            } else {
-                $startCandidates[] = $prevEndTime->copy()->addMinutes($gapBetweenProcesses);
-            }
-            if ($dependencyEndTime) {
-                $startCandidates[] = $dependencyEndTime;
-            }
-            $start = collect($startCandidates)->max();
-            $end = $start->copy()->addMinutes($duration);
+                // Hitung waktu mulai: max(prevEndTime + gap, machineReady, dependencyEndTime)
+                $startCandidates = [$machineReady];
+                if ($i == 1) {
+                    $startCandidates[] = $prevEndTime;
+                } else {
+                    $startCandidates[] = $prevEndTime->copy()->addMinutes($gapBetweenProcesses);
+                }
+                if ($dependencyEndTime) {
+                    $startCandidates[] = $dependencyEndTime;
+                }
+                $start = collect($startCandidates)->max();
+                $end = $start->copy()->addMinutes($duration);
 
-            if ($end->gt($product->shipping_date)) {
-                echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
-                break;
-            }
+                if ($end->gt($product->shipping_date)) {
+                    echo "⚠️ CONFLICT: Product {$product->code}, process $i cannot fit before shipping date.\n";
+                    break;
+                }
 
-            $tempSchedules[] = [
-                'product_id' => $product->id,
-                'process_id' => $i,
-                'machine_id' => $machineId,
-                'previous_schedule_id' => null, // set nanti
-                'process_dependency_id' => $lastDependencyScheduleId, // set sekarang
-                'is_start_process' => $i == 1,
-                'is_final_process' => $i == 5,
-                'quantity' => $quantity,
-                'plan_speed' => $planSpeed,
-                'conversion_value' => $conversion,
-                'plan_duration' => $duration,
-                'start_time' => $start,
-                'end_time' => $end,
-            ];
+                $tempSchedules[] = [
+                    'product_id' => $product->id,
+                    'process_id' => $i,
+                    'machine_id' => $machineId,
+                    'previous_schedule_id' => null, // set nanti
+                    'process_dependency_id' => $lastDependencyScheduleId, // set sekarang
+                    'is_start_process' => $i == 1,
+                    'is_final_process' => $i == 5,
+                    'quantity' => $quantity,
+                    'plan_speed' => $planSpeed,
+                    'conversion_value' => $conversion,
+                    'plan_duration' => $duration,
+                    'start_time' => $start,
+                    'end_time' => $end,
+                ];
 
-            // Update waktu siap mesin dan waktu selesai proses
-            $machineAvailableAt[$machineId] = $end->copy();
-            $prevEndTime = $end->copy(); // proses selanjutnya mulai setelah ini
+                // Update waktu siap mesin dan waktu selesai proses
+                $machineAvailableAt[$machineId] = $end->copy();
+                $prevEndTime = $end->copy(); // proses selanjutnya mulai setelah ini
             }
 
             // Insert schedules
             foreach ($tempSchedules as $scheduleData) {
-            $scheduleData['previous_schedule_id'] = $prevScheduleId;
+                $scheduleData['previous_schedule_id'] = $prevScheduleId;
 
-            $schedule = Schedule::create($scheduleData);
+                $schedule = Schedule::create($scheduleData);
 
-            echo "Inserted Product {$schedule->product_id} Process {$schedule->process_id} → Schedule ID {$schedule->id} → Dependency: " .
-                ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
+                echo "Inserted Product {$schedule->product_id} Process {$schedule->process_id} → Schedule ID {$schedule->id} → Dependency: " .
+                    ($scheduleData['process_dependency_id'] ?? 'NULL') . "\n";
 
-            $prevScheduleId = $schedule->id;
-            $lastSchedulePerProcess[$scheduleData['process_id']] = $schedule->id;
+                $prevScheduleId = $schedule->id;
+                $lastSchedulePerProcess[$scheduleData['process_id']] = $schedule->id;
             }
         }
 

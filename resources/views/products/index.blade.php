@@ -6,15 +6,15 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Products</h1>
     <div class="d-flex align-items-center">
+        <a href="{{ route('plan.generate')}}" class="btn btn-secondary me-2">Generate Plan</a>
+        {{-- <a href="{{ route('reset')}}" class="btn btn-secondary me-2">Reset</a> --}}
+        <a href="{{ route('reset')}}" class="btn btn-secondary me-2">Reset</a>
+        {{-- <a href="{{ route('products.import') }}" class="btn btn-secondary me-2">Import Products</a> --}}
         <a href="{{ route('products.import') }}" class="btn btn-secondary me-2">Import Products</a>
         {{-- <a href="{{ route('products.export') }}" class="btn btn-success">Export Products</a> --}}
         <a href="{{ route('products.create') }}" class="btn btn-primary">Create New Product</a>
     </div>
 </div>
-
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
 
 @if($products->isEmpty())
     <div class="alert alert-info">No products found. <a href="{{ route('products.create') }}">Create one</a>.</div>

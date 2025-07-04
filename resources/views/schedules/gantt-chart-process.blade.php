@@ -93,11 +93,9 @@
             const schedule = @json($schedules->keyBy('id'))[scheduleId];
             if (!schedule) return;
 
-            document.getElementById('editScheduleForm').action = '/schedules/' + scheduleId;
-            document.getElementById('edit_quantity').value = schedule.quantity;
-            document.getElementById('edit_plan_speed').value = schedule.plan_speed;
-            document.getElementById('edit_start_time').value = schedule.start_time.replace(' ', 'T');
-            document.getElementById('edit_end_time').value = schedule.end_time.replace(' ', 'T');
+            document.getElementById('editScheduleForm').action = '/schedules/' + scheduleId + '/updateDependencySafety';
+            document.getElementById('edit_previous_schedule_id').value = schedule.previous_schedule_id ?? '';
+            document.getElementById('edit_process_dependency_id').value = schedule.process_dependency_id ?? '';
 
             const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
             modal.show();
@@ -116,21 +114,14 @@
                     @csrf
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label for="edit_quantity" class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="edit_quantity" name="quantity" required>
+                            <label for="edit_previous_schedule_id" class="form-label">Previous Schedule ID</label>
+                            <input type="number" class="form-control" id="edit_previous_schedule_id"
+                                name="previous_schedule_id">
                         </div>
                         <div class="mb-3">
-                            <label for="edit_plan_speed" class="form-label">Plan Speed</label>
-                            <input type="number" class="form-control" id="edit_plan_speed" name="plan_speed" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_start_time" class="form-label">Start Time</label>
-                            <input type="datetime-local" class="form-control" id="edit_start_time" name="start_time"
-                                required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_end_time" class="form-label">End Time</label>
-                            <input type="datetime-local" class="form-control" id="edit_end_time" name="end_time" required>
+                            <label for="edit_process_dependency_id" class="form-label">Process Dependency ID</label>
+                            <input type="number" class="form-control" id="edit_process_dependency_id"
+                                name="process_dependency_id">
                         </div>
                     </div>
                     <div class="modal-footer">

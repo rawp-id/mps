@@ -52,19 +52,23 @@
             const productMap = new Map();
             schedules.forEach(s => {
                 const id = s.product ? parseInt(s.product.id) : 0;
-                const name = s.product?.name ?? 'Unknown Product';
+                const name = (s.product?.name?.length > 20) ? s.product.name.substring(0, 20) + '…' : (s.product?.name ?? 'Unknown Product');
                 productMap.set(id, name);
             });
 
             // 2️⃣ Buat array groups terurut ID ASC
-            const sortedProducts = Array.from(productMap.entries())
-                .sort((a, b) => a[0] - b[0]); // sort by numeric ID
-
-            sortedProducts.forEach(([id, name]) => {
-                groups.push({
-                    id,
-                    content: name
-                });
+            // Urutkan produk sesuai urutan kemunculan pertama pada schedules (berdasarkan schedule id)
+            const seen = new Set();
+            // Sort schedules ascending by schedule id to get products in order of first appearance
+            schedules.slice().sort((a, b) => a.id - b.id).forEach(s => {
+                const id = s.product ? parseInt(s.product.id) : 0;
+                if (!seen.has(id)) {
+                    groups.push({
+                        id,
+                        content: productMap.get(id)
+                    });
+                    seen.add(id);
+                }
             });
 
             // 3️⃣ Buat items
@@ -105,9 +109,11 @@
             const schedule = @json($schedules->keyBy('id'))[scheduleId];
             if (!schedule) return;
 
-            document.getElementById('editScheduleForm').action = '/schedules/' + scheduleId;
-            document.getElementById('edit_quantity').value = schedule.quantity;
-            document.getElementById('edit_plan_speed').value = schedule.plan_speed;
+            // document.getElementById('editScheduleForm').action = '/schedules/' + scheduleId;
+            document.getElementById('startTimeFields').action = '{{ route('schedules.min', ':id') }}'.replace(':id',
+                scheduleId);
+            document.getElementById('endTimeFields').action = '{{ route('schedules.add', ':id') }}'.replace(':id',
+                scheduleId);
             document.getElementById('edit_start_time').value = schedule.start_time.replace(' ', 'T');
             document.getElementById('edit_end_time').value = schedule.end_time.replace(' ', 'T');
 
@@ -124,32 +130,54 @@
                     <h5 class="modal-title" id="editScheduleModalLabel">Edit Schedule</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="editScheduleForm" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="edit_quantity" class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="edit_quantity" name="quantity" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_plan_speed" class="form-label">Plan Speed</label>
-                            <input type="number" class="form-control" id="edit_plan_speed" name="plan_speed" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_start_time" class="form-label">Start Time</label>
-                            <input type="datetime-local" class="form-control" id="edit_start_time" name="start_time"
-                                required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_end_time" class="form-label">End Time</label>
-                            <input type="datetime-local" class="form-control" id="edit_end_time" name="end_time" required>
+                {{-- <form id="editScheduleForm" method="POST"> --}}
+                {{-- @csrf --}}
+                <div class="modal-body">
+
+                    <!-- Section 2: Collapsible -->
+                    <p class="gap-2">
+                        <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseTimeFields"
+                            role="button" aria-expanded="false" aria-controls="collapseTimeFields">
+                            Start Time
+                        </a>
+                        <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#endTimeFields" role="button"
+                            aria-expanded="false" aria-controls="endTimeFields">
+                            End Time
+                        </a>
+                    </p>
+                    <div class="collapse" id="collapseTimeFields">
+                        <div class="card card-body">
+                            <form method="POST" id='startTimeFields'>
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="edit_start_time" class="form-label">Start Time</label>
+                                    <input type="datetime-local" class="form-control" id="edit_start_time" name="start_time"
+                                        required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Update Start Time</button>
+                            </form>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    <div class="collapse" id="endTimeFields">
+                        <div class="card card-body">
+                            <form method="POST" id='endTimeFields'>
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="edit_end_time" class="form-label">End Time</label>
+                                    <input type="datetime-local" class="form-control" id="edit_end_time" name="end_time"
+                                        required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Update End Time</button>
+                            </form>
+                        </div>
                     </div>
-                </form>
+                </div>
+
+                {{-- <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div> --}}
+                {{-- </form> --}}
             </div>
         </div>
     </div>

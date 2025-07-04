@@ -29,7 +29,7 @@ class ScheduleController extends Controller
         //     ->orderBy('product_id')
         //     ->orderBy('start_time') // <-- pastikan ini nama field urutanmu
         //     ->get();
-            // dd($schedules);
+        // dd($schedules);
 
         // $schedules = Schedule::with(['product', 'process', 'machine'])
         //     ->select('schedules.*')
@@ -38,7 +38,28 @@ class ScheduleController extends Controller
         //     ->orderBy('products.id')
         //     ->paginate(10);
         // Ambil 10 product per halaman
-        $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
+        $schedules = Schedule::with(['product', 'process', 'machine'])
+            ->join('products', 'schedules.product_id', '=', 'products.id')
+            ->orderByDesc('products.shipping_date')
+            ->select('schedules.*')
+            ->get();
+            
+        // echo "Total Schedules: " . $schedules->count() . "<br>";
+        // echo "Total Products: " . $schedules->unique('product_id')->count() . "<br>";
+        // echo "Total Processes: " . $schedules->unique('process_id')->count() . "<br>";
+        // echo "Total Machines: " . $schedules->unique('machine_id')->count() . "<br>";
+        // echo "Total Start Processes: " . $schedules->where('is_start_process', true)->count() . "<br>";
+        // echo "Total Final Processes: " . $schedules->where('is_final_process', true)->count() . "<br>";
+        // echo "Total Quantity: " . $schedules->sum('quantity') . "<br>";
+        // echo "Total Plan Speed: " . $schedules->sum('plan_speed') . "<br>";
+        // echo "Total Conversion Value: " . $schedules->sum('conversion_value') . "<br>";
+        // echo "Total Plan Duration: " . $schedules->sum('plan_duration') . "<br>";
+        // echo "debugging schedules:<br>";
+        // foreach ($schedules as $schedule) {
+        //     echo "ID: {$schedule->id}, Product: {$schedule->product->name}, Process: {$schedule->process->name}, Machine: {$schedule->machine->name}, Start: {$schedule->start_time}, End: {$schedule->end_time}<br>";
+        // }
+
+        // dd($schedules);
         return view('schedules.gantt-chart', compact('schedules'));
     }
 
@@ -134,16 +155,18 @@ class ScheduleController extends Controller
         return redirect()->route('schedules.index')->with('success', 'Schedule updated successfully.');
     }
 
-    public function delaySchedule(Request $request)
+    public function delaySchedule(Request $request, $id)
     {
         $schedules = Schedule::all();
-        $thisSchedule = Schedule::findOrFail(2);
+        $thisSchedule = Schedule::findOrFail($id); // Bisa dinamis nanti
 
         $shipmentDeadline = Carbon::parse($thisSchedule->product->shipping_date);
 
         $endProcessProduct = null;
 
-        $delayMinutes = (int) $request->input('delay_minutes', 10);
+        // $delayMinutes = (int) $request->input('delay_minutes', 10);
+        $inputStartTime = $request->input('start_time');
+        $delayMinutes = $inputStartTime ? Carbon::parse($inputStartTime)->diffInMinutes($thisSchedule->start_time) : 10;
 
         foreach ($schedules as $item) {
             if ($item->product_id == $thisSchedule->product_id && $item->is_final_process) {
@@ -164,7 +187,8 @@ class ScheduleController extends Controller
 
         while ($current && $current->id != $endProcessProduct->id) {
             $current->start_time = Carbon::parse($current->start_time)->addMinutes($delayMinutes);
-            $current->end_time = Carbon::parse($current->end_time)->addMinutes($delayMinutes);
+            $current->end_time = Carbon::parse($current->start_time)->addMinutes($current->plan_duration);
+            // $current->end_time = Carbon::parse($current->end_time)->addMinutes($delayMinutes);
             $current->save();
 
             // Cari proses berikutnya dalam chain produk yang sama
@@ -176,7 +200,7 @@ class ScheduleController extends Controller
         // Update endProcessProduct juga
         if ($current && $current->id == $endProcessProduct->id) {
             $current->start_time = Carbon::parse($current->start_time)->addMinutes($delayMinutes);
-            $current->end_time = Carbon::parse($current->end_time)->addMinutes($delayMinutes);
+            $current->end_time = Carbon::parse($current->start_time)->addMinutes($current->plan_duration);
             $current->save();
         }
 
@@ -186,7 +210,7 @@ class ScheduleController extends Controller
             if ($schedule->id != $thisSchedule->id) {
                 // Geser semua proses yang memiliki process_dependency_id ke depan
                 $schedule->start_time = Carbon::parse($schedule->start_time)->addMinutes($delayMinutes);
-                $schedule->end_time = Carbon::parse($schedule->end_time)->addMinutes($delayMinutes);
+                $schedule->end_time = Carbon::parse($schedule->start_time)->addMinutes($schedule->plan_duration);
                 $schedule->save();
             }
         }
@@ -216,14 +240,15 @@ class ScheduleController extends Controller
             }
         }
 
-        dd('All schedules updated successfully.');
+        // dd('All schedules updated successfully.');
+        return redirect()->back()->with('success', 'All schedules updated successfully.');
 
     }
 
-    public function advanceSchedule(Request $request)
+    public function advanceSchedule(Request $request, $id)
     {
         $schedules = Schedule::all();
-        $thisSchedule = Schedule::findOrFail(2); // Bisa dinamis nanti
+        $thisSchedule = Schedule::findOrFail($id); // Bisa dinamis nanti
         $delayMinutes = (int) $request->input('advance_minutes', 10) * -1; // pengurangan waktu
 
         $shipmentDeadline = Carbon::parse($thisSchedule->product->shipping_date);
@@ -251,7 +276,7 @@ class ScheduleController extends Controller
 
             // Validasi waktu tidak absurd
             if ($newEnd->lessThanOrEqualTo($newStart)) {
-                dd("Durasi tidak valid setelah dimajukan pada schedule ID {$current->id}.");
+                // dd("Durasi tidak valid setelah dimajukan pada schedule ID {$current->id}.");
                 return redirect()->back()->withErrors(['error' => "Durasi tidak valid setelah dimajukan pada schedule ID {$current->id}."]);
             }
 
@@ -275,7 +300,7 @@ class ScheduleController extends Controller
             $newEnd = Carbon::parse($schedule->end_time)->addMinutes($delayMinutes);
 
             if ($newEnd->lessThanOrEqualTo($newStart)) {
-                dd("Durasi tidak valid setelah dimajukan pada schedule ID {$schedule->id}.");
+                // dd("Durasi tidak valid setelah dimajukan pada schedule ID {$schedule->id}.");
                 return redirect()->back()->withErrors(['error' => "Durasi tidak valid setelah dimajukan (dependency schedule ID {$schedule->id})."]);
             }
 
@@ -309,7 +334,8 @@ class ScheduleController extends Controller
             }
         }
 
-        dd('All schedules advanced successfully.');
+        // dd('All schedules advanced successfully.');
+        return redirect()->back()->with('success', 'All schedules advanced successfully.');
     }
 
     public function updatePlanDurationByIdAndAdjustChain($id)
@@ -355,6 +381,87 @@ class ScheduleController extends Controller
             'schedule_id' => $schedule->id,
             'new_plan_duration' => $duration
         ]);
+    }
+
+    public function updateDependencySafe(Request $request, $id)
+    {
+        $schedule = Schedule::find($id);
+        if (!$schedule) {
+            return response()->json(['error' => 'Schedule tidak ditemukan.'], 404);
+        }
+
+        $newPrevId = $request->input('previous_schedule_id');
+        $newProcessDepId = $request->input('process_dependency_id');
+
+        /*** 1️⃣ Validasi dasar ***/
+        if ($newPrevId && !Schedule::find($newPrevId)) {
+            return response()->json(['error' => 'Previous schedule ID tidak valid.'], 400);
+        }
+        if ($newProcessDepId && !Schedule::find($newProcessDepId)) {
+            return response()->json(['error' => 'Process dependency ID tidak valid.'], 400);
+        }
+
+        if ($newPrevId == $schedule->id) {
+            return response()->json(['error' => 'Previous schedule ID tidak boleh dirinya sendiri.'], 400);
+        }
+
+        /*** 2️⃣ Cek loop di previous_schedule_id chain ***/
+        $current = $newPrevId ? Schedule::find($newPrevId) : null;
+        while ($current) {
+            if ($current->id == $schedule->id) {
+                return response()->json(['error' => 'Update ini akan membuat loop di rantai proses.'], 400);
+            }
+            $current = $current->previous_schedule_id ? Schedule::find($current->previous_schedule_id) : null;
+        }
+
+        /*** 3️⃣ Simpan perubahan ***/
+        $schedule->previous_schedule_id = $newPrevId;
+        $schedule->process_dependency_id = $newProcessDepId;
+        $schedule->save();
+
+        /*** 4️⃣ Sesuaikan rantai berikutnya (prev chain) ***/
+        $this->adjustFollowingChain($schedule);
+
+        /*** 5️⃣ Sesuaikan dependency ***/
+        $this->adjustDependencySchedules($schedule);
+
+        return redirect()->back()->with('success', 'Dependency updated safely.');
+    }
+
+    private function adjustFollowingChain(Schedule $schedule)
+    {
+        $current = $schedule;
+        while (true) {
+            $next = Schedule::where('previous_schedule_id', $current->id)
+                ->where('product_id', $current->product_id)
+                ->first();
+
+            if (!$next)
+                break;
+
+            $next->start_time = Carbon::parse($current->end_time);
+            $next->end_time = Carbon::parse($next->start_time)->addMinutes($next->plan_duration);
+            $next->save();
+
+            $current = $next;
+        }
+    }
+
+    private function adjustDependencySchedules(Schedule $schedule)
+    {
+        $dependentSchedules = Schedule::where('process_dependency_id', $schedule->process_id)->get();
+
+        foreach ($dependentSchedules as $dep) {
+            $latestEnd = Schedule::where('process_id', $schedule->process_id)
+                ->where('product_id', $schedule->product_id)
+                ->max('end_time');
+
+            if ($latestEnd) {
+                $dep->start_time = Carbon::parse($latestEnd);
+                $dep->end_time = Carbon::parse($dep->start_time)->addMinutes($dep->plan_duration);
+                $dep->save();
+            }
+        }
     }
 
     public function addDelay(Request $request, $schedule)
