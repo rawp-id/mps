@@ -16,8 +16,8 @@ Route::post('schedule/{id}/add', [ScheduleController::class, 'delaySchedule'])->
 Route::post('schedule/{id}/min', [ScheduleController::class, 'advanceSchedule'])->name('schedules.min');
 
 Route::get('gantt', [ScheduleController::class, 'gantt'])->name('schedules.gantt');
-Route::get('gantt/machines', [ScheduleController::class, 'ganttByMachine'])->name('schedules.gantt.machine');
-Route::get('gantt/processes', [ScheduleController::class, 'ganttByProcess'])->name('schedules.gantt.process');
+Route::get('gantt/machines/{id}', [ScheduleController::class, 'ganttByMachine'])->name('schedules.gantt.machine');
+Route::get('gantt/processes/{id}', [ScheduleController::class, 'ganttByProcess'])->name('schedules.gantt.process');
 
 Route::post('schedules/{id}/updateDependencySafety', [ScheduleController::class, 'updateDependencySafe'])->name('schedules.updateDependencySafety');
 

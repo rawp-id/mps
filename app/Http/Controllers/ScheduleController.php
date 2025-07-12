@@ -19,64 +19,75 @@ class ScheduleController extends Controller
         return view('schedules.index', compact('products'));
     }
 
-    public function gantt()
+    public function gantt(Request $request)
     {
-        // $products = Product::orderBy('id')->paginate(10);
-        // $productIds = $products->pluck('id');
+        $startDate = $request->input('start_date') ?? Carbon::today()->toDateString();
+        $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
 
-        // $schedules = Schedule::with(['product', 'process', 'machine'])
-        //     ->whereIn('product_id', $productIds)
-        //     ->orderBy('product_id')
-        //     ->orderBy('start_time') // <-- pastikan ini nama field urutanmu
-        //     ->get();
-        // dd($schedules);
-
-        // $schedules = Schedule::with(['product', 'process', 'machine'])
-        //     ->select('schedules.*')
-        //     ->join('products', 'schedules.product_id', '=', 'products.id')
-        //     ->groupBy('schedules.product_id')
-        //     ->orderBy('products.id')
-        //     ->paginate(10);
-        // Ambil 10 product per halaman
         $schedules = Schedule::with(['product', 'process', 'machine'])
             ->join('products', 'schedules.product_id', '=', 'products.id')
+            ->whereDate('schedules.start_time', '>=', $startDate)
+            ->whereDate('schedules.end_time', '<=', $endDate)
             ->orderByDesc('products.shipping_date')
             ->select('schedules.*')
             ->get();
-            
-        // echo "Total Schedules: " . $schedules->count() . "<br>";
-        // echo "Total Products: " . $schedules->unique('product_id')->count() . "<br>";
-        // echo "Total Processes: " . $schedules->unique('process_id')->count() . "<br>";
-        // echo "Total Machines: " . $schedules->unique('machine_id')->count() . "<br>";
-        // echo "Total Start Processes: " . $schedules->where('is_start_process', true)->count() . "<br>";
-        // echo "Total Final Processes: " . $schedules->where('is_final_process', true)->count() . "<br>";
-        // echo "Total Quantity: " . $schedules->sum('quantity') . "<br>";
-        // echo "Total Plan Speed: " . $schedules->sum('plan_speed') . "<br>";
-        // echo "Total Conversion Value: " . $schedules->sum('conversion_value') . "<br>";
-        // echo "Total Plan Duration: " . $schedules->sum('plan_duration') . "<br>";
-        // echo "debugging schedules:<br>";
-        // foreach ($schedules as $schedule) {
-        //     echo "ID: {$schedule->id}, Product: {$schedule->product->name}, Process: {$schedule->process->name}, Machine: {$schedule->machine->name}, Start: {$schedule->start_time}, End: {$schedule->end_time}<br>";
-        // }
+
+        $machines = Machine::all();
+        $processes = Process::all();
 
         // dd($schedules);
-        return view('schedules.gantt-chart', compact('schedules'));
+
+        return view('schedules.gantt-chart', compact('schedules', 'startDate', 'endDate', 'machines', 'processes'));
     }
 
-    public function ganttByMachine()
+    public function ganttByMachine(Request $request, $id)
     {
-        $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
-        return view('schedules.gantt-chart-machine', compact('schedules'));
+        $startDate = $request->input('start_date') ?? Carbon::today()->toDateString();
+        $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
+
+        $machines = Machine::all();
+        $processes = Process::all();
+
+        if ($id) {
+            $schedules = Schedule::with(['product', 'process', 'machine'])
+                ->whereDate('schedules.start_time', '>=', $startDate)
+                ->whereDate('schedules.end_time', '<=', $endDate)
+                ->where('machine_id', $id)
+                ->latest()
+                ->get();
+        } else {
+            $schedules = Schedule::with(['product', 'process', 'machine'])
+                ->whereDate('schedules.start_time', '>=', $startDate)
+                ->whereDate('schedules.end_time', '<=', $endDate)
+                ->latest()
+                ->get();
+        }
+
+        // dd($schedules);
+        // $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
+        return view('schedules.gantt-chart-machine', compact('schedules', 'startDate', 'endDate', 'id', 'machines', 'processes'));
     }
 
-    public function ganttByProcess()
+    public function ganttByProcess(Request $request, $id)
     {
+        $startDate = $request->input('start_date') ?? Carbon::today()->toDateString();
+        $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
+        $machines = Machine::all();
+        $processes = Process::all();
+
         $schedules = Schedule::with(['product', 'process', 'machine'])
+            ->whereDate('schedules.start_time', '>=', $startDate)
+            ->whereDate('schedules.end_time', '<=', $endDate)
+            ->where('process_id', $id)
             ->orderBy('process_id')
             ->latest()
             ->get();
+        // $schedules = Schedule::with(['product', 'process', 'machine'])
+        //     ->orderBy('process_id')
+        //     ->latest()
+        //     ->get();
 
-        return view('schedules.gantt-chart-process', compact('schedules'));
+        return view('schedules.gantt-chart-process', compact('schedules', 'startDate', 'endDate', 'id', 'machines', 'processes'));
     }
 
     public function showByProduct($productId)

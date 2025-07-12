@@ -7,14 +7,67 @@
         <h1>Schedules</h1>
         {{-- dropdown menu filter --}}
         <div class="dropdown">
+            <input type="date" class="form-control" id="filterStartDate" name="start_date" placeholder="Start date"
+                style="width: 150px; display: inline-block; margin-right: 10px;" value="{{ $startDate }}">
+            <input type="date" class="form-control" id="filterEndDate" name="end_date" placeholder="End date"
+                style="width: 150px; display: inline-block; margin-right: 10px;" value="{{ $endDate }}">
+            <button type="button" class="btn btn-primary" id="filterDateSubmit" style="margin-right: 10px;">
+                Apply
+            </button>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.getElementById('filterDateSubmit').addEventListener('click', function() {
+                        const startDate = document.getElementById('filterStartDate').value;
+                        const endDate = document.getElementById('filterEndDate').value;
+                        // Redirect with query parameters for filtering
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('start_date', startDate);
+                        url.searchParams.set('end_date', endDate);
+                        window.location.href = url.toString();
+                    });
+                });
+            </script>
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown"
                 data-bs-toggle="dropdown" aria-expanded="false">
                 Filter
             </button>
             <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-                <li><a class="dropdown-item" href="{{ route('schedules.gantt') }}">Products</a></li>
-                <li><a class="dropdown-item active" href="{{ route('schedules.gantt.machine') }}">Machines</a></li>
-                <li><a class="dropdown-item" href="{{ route('schedules.gantt.process') }}">Processes</a></li>
+                <li><a class="dropdown-item"
+                        href="{{ route('schedules.gantt', ['start_date' => $startDate, 'end_date' => $endDate]) }}">Products</a>
+                </li>
+
+                <li class="dropdown-submenu position-relative">
+                    <button type="button" class="dropdown-item dropdown-toggle">
+                        Machines
+                    </button>
+                    <ul class="dropdown-menu">
+                        @foreach ($machines as $machine)
+                            <li>
+                                <button type="button" class="dropdown-item machine-link"
+                                    data-url="{{ route('schedules.gantt.machine', ['id' => $machine->id, 'start_date' => $startDate, 'end_date' => $endDate]) }}">
+                                    {{ $machine->name }}
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                </li>
+
+
+                <li class="dropdown-submenu position-relative">
+                    <button type="button" class="dropdown-item dropdown-toggle">
+                        Processes
+                    </button>
+                    <ul class="dropdown-menu">
+                        @foreach ($processes as $item)
+                            <li>
+                                <button type="button" class="dropdown-item machine-link"
+                                    data-url="{{ route('schedules.gantt.process', ['id' => $item->id, 'start_date' => $startDate, 'end_date' => $endDate]) }}">
+                                    {{ $item->name }}
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                </li>
             </ul>
         </div>
     </div>

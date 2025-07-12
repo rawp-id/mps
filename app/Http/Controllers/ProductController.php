@@ -182,11 +182,6 @@ class ProductController extends Controller
 
         foreach ($products as $product) {
 
-            // echo "details for product {$product->id}:<br>";
-            // echo "code: {$product->code}<br>";
-            // echo "name: {$product->name}<br>";
-            // echo "shipment_date: {$product->shipping_date}<br>";
-
             $shipmentDeadline = Carbon::parse($product->shipping_date)->subMinutes(30); // Kurangi 30 menit sebagai buffer
 
             // 1️⃣ HITUNG DURASI MASING2 PROSES
@@ -211,71 +206,6 @@ class ProductController extends Controller
                 $endTimes[$i] = $startTimes[$i + 1]->copy()->subMinutes($gapBetweenProcesses);
                 $startTimes[$i] = $endTimes[$i]->copy()->subMinutes($durations[$i]);
             }
-
-            // echo "Start Times:<br>";
-            // foreach ($startTimes as $machineId => $startTime) {
-            //     echo "Machine {$machineId}: {$startTime->toDateTimeString()}<br>";
-            // }
-
-            // echo "End Times:<br>";
-            // foreach ($endTimes as $machineId => $endTime) {
-            //     echo "Machine {$machineId}: {$endTime->toDateTimeString()}<br>";
-            // }
-
-            // dd($startTimes);
-
-            // 3️⃣ CEK BENTROK & SHIFT JIKA PERLU
-            // $tries = 0;
-            // do {
-            //     $conflictFound = false;
-
-            //     for ($i = 1; $i <= 5; $i++) {
-            //         $machineId = $i;
-            //         $start = $startTimes[$i];
-            //         $end = $endTimes[$i];
-
-            //         // MESIN SUDAH PENUH → harus mundur
-            //         if ($machineAvailableAt[$machineId]->greaterThan($start)) {
-            //             $conflictFound = true;
-            //             break;
-            //         }
-
-            //         // CEK OVERLAP JADWAL LAIN
-            //         $overlap = Schedule::where('machine_id', $machineId)
-            //             ->where(function ($query) use ($start, $end) {
-            //                 $query->whereBetween('start_time', [$start, $end])
-            //                     ->orWhereBetween('end_time', [$start, $end])
-            //                     ->orWhere(function ($q) use ($start, $end) {
-            //                         $q->where('start_time', '<=', $start)
-            //                             ->where('end_time', '>=', $end);
-            //                     });
-            //             })->exists();
-
-            //         if ($overlap) {
-            //             $conflictFound = true;
-            //             break;
-            //         }
-            //     }
-
-            //     if ($conflictFound) {
-            //         // GESER SEMUA PROSES LEBIH AWAL
-            //         for ($j = 1; $j <= 5; $j++) {
-            //             $startTimes[$j]->subMinutes($shiftStep);
-            //             $endTimes[$j]->subMinutes($shiftStep);
-            //         }
-            //     }
-
-            //     // CEK JANGAN SAMPAI PROSES TERAKHIR LEWAT SHIPMENT DATE
-            //     if ($endTimes[5]->greaterThan($shipmentDeadline)) {
-            //         throw new \Exception("Product {$product->id}: proses terakhir tidak bisa selesai sebelum shipment_date meski digeser.");
-            //     }
-
-            //     $tries++;
-            //     if ($tries > $maxTries) {
-            //         throw new \Exception("Product {$product->id}: tidak bisa dijadwalkan setelah $maxTries kali geser.");
-            //     }
-
-            // } while ($conflictFound);
 
             // 4️⃣ SIMPAN KE DATABASE
             $lastSchedulePerProcess = [];
