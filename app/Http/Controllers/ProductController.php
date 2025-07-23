@@ -158,98 +158,85 @@ class ProductController extends Controller
 
     public function generatePlans(Request $request)
     {
-        $start = $request->input('start_time', Carbon::now()->startOfDay());
+        try {
+            $start = $request->input('start_time', Carbon::now()->startOfDay());
 
-        $apiUrl = 'https://rest.mps.rawp.my.id/schedule';
+            $apiUrl = 'https://rest.mps.rawp.my.id/schedule';
 
-        $startTime = microtime(true);
+            $startTime = microtime(true);
 
-        $start_products = Product::orderBy('shipping_date')->first();
+            $start_products = Product::orderBy('shipping_date')->first();
 
-        $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+            $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
 
-        // dd($start);
+            $products = DB::table('products')
+                ->select(
+                    'id',
+                    'code',
+                    'name',
+                    DB::raw('shipping_date as shipment_deadline'),
+                    'process_details',
+                    'created_at',
+                    'updated_at'
+                )
+                ->get();
 
-        $products = DB::table('products')
-            ->select(
-                'id',
-                'code',
-                'name',
-                DB::raw('shipping_date as shipment_deadline'),
-                'process_details',
-                'created_at',
-                'updated_at'
-            )
-            ->get();
+            $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
 
-        // dd($products);
+            $datas = [
+                'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
+                'products' => $products->map(function ($product) use ($operations) {
+                    $operationIds = is_array($product->process_details)
+                        ? $product->process_details
+                        : explode(',', $product->process_details);
 
-        $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
-
-        $datas = [
-            'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
-            'products' => $products->map(function ($product) use ($operations) {
-                // Ambil array id dari process_details
-                $operationIds = is_array($product->process_details)
-                    ? $product->process_details
-                    : explode(',', $product->process_details);
-
-                $tasks = [];
-                foreach ($operationIds as $opId) {
-                    $opId = trim($opId);
-                    if ($opId && isset($operations[$opId])) {
-                        $duration = $operations[$opId]->duration ?? 0;
-                        $tasks[] = [(int) $opId, $duration];
+                    $tasks = [];
+                    foreach ($operationIds as $opId) {
+                        $opId = trim($opId);
+                        if ($opId && isset($operations[$opId])) {
+                            $duration = $operations[$opId]->duration ?? 0;
+                            $tasks[] = [(int) $opId, $duration];
+                        }
                     }
-                }
 
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
-                    'tasks' => $tasks,
-                ];
-            })->toArray(),
-        ];
+                    return [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
+                        'tasks' => $tasks,
+                    ];
+                })->toArray(),
+            ];
 
-        // return response()->json($datas);
+            $response = Http::post($apiUrl, $datas);
 
-        // Kirim data ke API
-        $response = Http::post($apiUrl, $datas);
+            $response_data = $response->object();
 
-        // dd($response->json());
-        // return $response->json();
+            foreach ($response_data->tasks as $schedule) {
+                Schedule::create([
+                    'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
+                    'operation_id' => $schedule->operation_id ?? null,
+                    'is_start_process' => $schedule->is_start_process ?? $schedule->isStartProcess ?? false,
+                    'is_final_process' => $schedule->is_final_process ?? $schedule->isFinalProcess ?? false,
+                    'quantity' => $schedule->quantity ?? 0,
+                    'plan_speed' => $schedule->plan_speed ?? 0,
+                    'conversion_value' => $schedule->conversion_value ?? 0,
+                    'plan_duration' => $schedule->duration ?? 0,
+                    'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
+                    'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+                ]);
+            }
 
-        $response_data = $response->object();
-        // dd($response_data->tasks);
+            $duration = round(microtime(true) - $startTime, 2);
 
-        foreach ($response_data->tasks as $schedule) {
-            // dd($schedule->operation_id);
-            Schedule::create([
-                'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
-                // 'process_id' => $schedule->process_id ?? $schedule->processId ?? null,
-                // 'machine_id' => $schedule->machine_id ?? $schedule->machineId ?? null,
-                'operation_id' => $schedule->operation_id ?? null,
-                // 'previous_schedule_id' => $schedule->previous_schedule_id ?? $schedule->previousScheduleId ?? null,
-                // 'process_dependency_id' => $schedule->process_dependency_id ?? $schedule->processDependencyId ?? null,
-                'is_start_process' => $schedule->is_start_process ?? $schedule->isStartProcess ?? false,
-                'is_final_process' => $schedule->is_final_process ?? $schedule->isFinalProcess ?? false,
-                'quantity' => $schedule->quantity ?? 0,
-                'plan_speed' => $schedule->plan_speed ?? 0,
-                'conversion_value' => $schedule->conversion_value ?? 0,
-                'plan_duration' => $schedule->duration ?? 0,
-                'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
-                'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
-            ]);
+            if ($response->successful()) {
+                return redirect()->route('schedules.gantt')->with('success', 'Plans generated successfully. Processed in ' . $duration . ' seconds.');
+            }
+
+            return redirect()->route('products.index')->withErrors('Failed to generate plans.');
+        } catch (\Throwable $e) {
+            return redirect()->route('products.index')->withErrors('Error: ' . $e->getMessage());
         }
-
-        // dd(Schedule::all());
-
-        if ($response->successful()) {
-            return redirect()->route('plan-simulate.index')->with('success', 'Plans generated successfully.');
-        }
-
-        return back()->withErrors('Failed to generate plans.');
     }
     // public function generatePlans(Request $request)
     // {
