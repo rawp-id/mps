@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use App\Models\Machine;
+use App\Models\Operations;
 use App\Models\Process;
 use App\Models\Product;
 use App\Models\Schedule;
@@ -24,7 +25,7 @@ class ScheduleController extends Controller
         $startDate = $request->input('start_date') ?? Carbon::today()->toDateString();
         $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
 
-        $schedules = Schedule::with(['product', 'process', 'machine'])
+        $schedules = Schedule::with(['product', 'process', 'machine', 'operation'])
             ->join('products', 'schedules.product_id', '=', 'products.id')
             ->whereDate('schedules.start_time', '>=', $startDate)
             ->whereDate('schedules.end_time', '<=', $endDate)
@@ -34,10 +35,11 @@ class ScheduleController extends Controller
 
         $machines = Machine::all();
         $processes = Process::all();
+        $operations = Operations::with(['process', 'machine'])->get();
 
         // dd($schedules);
 
-        return view('schedules.gantt-chart', compact('schedules', 'startDate', 'endDate', 'machines', 'processes'));
+        return view('schedules.gantt-chart', compact('schedules', 'startDate', 'endDate', 'machines', 'processes', 'operations'));
     }
 
     public function ganttByMachine(Request $request, $id)
@@ -47,25 +49,28 @@ class ScheduleController extends Controller
 
         $machines = Machine::all();
         $processes = Process::all();
+        $operations = Operations::with(['process', 'machine'])->get();
 
         if ($id) {
-            $schedules = Schedule::with(['product', 'process', 'machine'])
+            $schedules = Schedule::with(['product', 'process', 'machine', 'operation', 'operation.process', 'operation.machine'])
                 ->whereDate('schedules.start_time', '>=', $startDate)
                 ->whereDate('schedules.end_time', '<=', $endDate)
-                ->where('machine_id', $id)
+                ->whereHas('operation', function ($query) use ($id) {
+                    $query->where('machine_id', $id);
+                })
                 ->latest()
                 ->get();
         } else {
-            $schedules = Schedule::with(['product', 'process', 'machine'])
+            $schedules = Schedule::with(['product', 'process', 'machine', 'operation'])
                 ->whereDate('schedules.start_time', '>=', $startDate)
                 ->whereDate('schedules.end_time', '<=', $endDate)
                 ->latest()
                 ->get();
         }
 
-        // dd($schedules);
+        // dd($schedules->toArray());
         // $schedules = Schedule::with(['product', 'process', 'machine'])->latest()->get();
-        return view('schedules.gantt-chart-machine', compact('schedules', 'startDate', 'endDate', 'id', 'machines', 'processes'));
+        return view('schedules.gantt-chart-machine', compact('schedules', 'startDate', 'endDate', 'id', 'machines', 'processes', 'operations'));
     }
 
     public function ganttByProcess(Request $request, $id)
@@ -74,20 +79,23 @@ class ScheduleController extends Controller
         $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
         $machines = Machine::all();
         $processes = Process::all();
+        $operations = Operations::with(['process', 'machine'])->get();
 
-        $schedules = Schedule::with(['product', 'process', 'machine'])
+        $schedules = Schedule::with(['product', 'process', 'machine', 'operation', 'operation.process', 'operation.machine'])
             ->whereDate('schedules.start_time', '>=', $startDate)
             ->whereDate('schedules.end_time', '<=', $endDate)
-            ->where('process_id', $id)
-            ->orderBy('process_id')
+            ->whereHas('operation', function ($query) use ($id) {
+                $query->where('process_id', $id);
+            })
             ->latest()
             ->get();
+            // dd($schedules->toArray());
         // $schedules = Schedule::with(['product', 'process', 'machine'])
         //     ->orderBy('process_id')
         //     ->latest()
         //     ->get();
 
-        return view('schedules.gantt-chart-process', compact('schedules', 'startDate', 'endDate', 'id', 'machines', 'processes'));
+        return view('schedules.gantt-chart-process', compact('schedules', 'startDate', 'endDate', 'id', 'machines', 'processes', 'operations'));
     }
 
     public function showByProduct($productId)

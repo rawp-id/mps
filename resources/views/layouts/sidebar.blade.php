@@ -26,6 +26,20 @@
                         <i class="bi bi-plus-circle me-2"></i> Plan Simulate
                     </a>
                 </li>
+                <hr>
+                <span class="text-secondary ms-3 mb-1">Settings</span>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('operations.index') }}">
+                        <i class="bi bi-gear me-2"></i> Operations
+                    </a>
+                </li>
+                <hr>
+                <p class="text-secondary ms-3 mb-1">Update Apps</p>
+                <li class="nav-item">
+                    <a class="nav-link text-white">
+                        <i class="bi bi-arrow-up-circle me-2"></i> Penambahan fitur Operation Management
+                    </a>
+                </li>
             </ul>
         </div>
     </div>

@@ -93,7 +93,7 @@
             const machineMap = new Map();
             schedules.forEach(s => {
                 const id = s.machine ? parseInt(s.machine.id) : 0;
-                const machineName = s.machine?.name ?? 'Unknown Product';
+                const machineName = s.operation?.machine.name ?? 'Unknown Machine';
                 machineMap.set(id, machineName);
             });
 

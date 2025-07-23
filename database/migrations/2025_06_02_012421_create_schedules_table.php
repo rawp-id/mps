@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->foreignId('process_id')->constrained('processes')->onDelete('cascade');
-            $table->foreignId('machine_id')->constrained('machines')->onDelete('cascade');
+            $table->foreignId('process_id')->nullable()->constrained('processes')->onDelete('cascade');
+            $table->foreignId('machine_id')->nullable()->constrained('machines')->onDelete('cascade');
+            $table->foreignId('operation_id')->nullable()->constrained('operations')->onDelete('cascade');
             $table->foreignId('previous_schedule_id')->nullable()->constrained('schedules')->onDelete('cascade');
             $table->foreignId('process_dependency_id')->nullable()->constrained('schedules')->onDelete('cascade');
             $table->boolean('is_start_process')->default(false);

@@ -25,6 +25,12 @@
         @error('shipping_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
+    <div class="mb-3">
+        <label for="process_details" class="form-label">Process Details</label>
+        <input type="text" class="form-control @error('process_details') is-invalid @enderror" name="process_details" value="{{ old('process_details') }}">
+        @error('process_details') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
     <button type="submit" class="btn btn-success">Save</button>
     <a href="{{ route('products.index') }}" class="btn btn-secondary">Cancel</a>
 </form>

@@ -27,12 +27,46 @@
                     });
                 });
             </script>
+            {{-- @dd($operations) --}}
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                Kategori
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                <li>
+                    <a class="dropdown-item"
+                        href="{{ route('schedules.gantt', ['start_date' => $startDate, 'end_date' => $endDate]) }}">Plan</a>
+                </li>
+                <li>
+                    <a class="dropdown-item"
+                        href="{{ route('schedules.gantt', ['start_date' => $startDate, 'end_date' => $endDate]) }}">Actual</a>
+                </li>
+            </ul>
+
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown"
                 data-bs-toggle="dropdown" aria-expanded="false">
                 Filter
             </button>
             <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-                <li><a class="dropdown-item" href="{{ route('schedules.gantt', ['start_date' => $startDate, 'end_date' => $endDate]) }}">Products</a></li>
+                <li><a class="dropdown-item"
+                        href="{{ route('schedules.gantt', ['start_date' => $startDate, 'end_date' => $endDate]) }}">Products</a>
+                </li>
+
+                {{-- <li class="dropdown-submenu position-relative">
+                    <button type="button" class="dropdown-item dropdown-toggle">
+                        Operations
+                    </button>
+                    <ul class="dropdown-menu">
+                        @foreach ($operations as $operation)
+                            <li>
+                                <button type="button" class="dropdown-item machine-link"
+                                    data-url="{{ route('schedules.gantt.machine', ['id' => $operation->id, 'start_date' => $startDate, 'end_date' => $endDate]) }}">
+                                    {{ $operation->name }}
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                </li> --}}
 
                 <li class="dropdown-submenu position-relative">
                     <button type="button" class="dropdown-item dropdown-toggle">
@@ -67,7 +101,6 @@
                     </ul>
                 </li>
             </ul>
-
         </div>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -129,7 +162,7 @@
                 items.push({
                     id: s.id,
                     group: s.product ? parseInt(s.product.id) : 0,
-                    content: s.process?.name ?? 'Process',
+                    content: s.operation?.name ?? 'Process',
                     start: s.start_time,
                     end: s.end_time
                 });
@@ -204,8 +237,8 @@
                                 @csrf
                                 <div class="mb-3">
                                     <label for="edit_start_time" class="form-label">Start Time</label>
-                                    <input type="datetime-local" class="form-control" id="edit_start_time" name="start_time"
-                                        required>
+                                    <input type="datetime-local" class="form-control" id="edit_start_time"
+                                        name="start_time" required>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Update Start Time</button>
                             </form>

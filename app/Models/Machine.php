@@ -16,8 +16,8 @@ class Machine extends Model
     {
         return $this->hasMany(Product::class);
     }
-    public function processes()
+    public function operations()
     {
-        return $this->hasMany(Process::class);
+        return $this->hasMany(Operations::class);
     }
 }

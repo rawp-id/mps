@@ -21,4 +21,8 @@ class Schedule extends Model
     {
         return $this->belongsTo(Process::class);
     }
+    public function operation()
+    {
+        return $this->belongsTo(Operations::class);
+    }
 }

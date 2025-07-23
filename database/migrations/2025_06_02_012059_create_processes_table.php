@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
-            $table->foreignId('machine_id')->constrained('machines')->onDelete('cascade');
+            // $table->foreignId('machine_id')->constrained('machines')->onDelete('cascade');
             $table->bigInteger('speed')->default(0);
             $table->timestamps();
         });

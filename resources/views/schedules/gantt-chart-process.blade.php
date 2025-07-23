@@ -94,7 +94,8 @@
             const processMap = new Map();
             schedules.forEach(s => {
                 const id = s.process ? parseInt(s.process.id) : 0;
-                const processName = s.process?.name ?? 'Unknown Product';
+                const processName = s.operation?.process.name ?? 'Unknown Process';
+                // console.log(s.operation);
                 processMap.set(id, processName);
             });
 

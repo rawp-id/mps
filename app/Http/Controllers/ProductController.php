@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Plan;
 use App\Models\Machine;
+use App\Models\Operations;
 use App\Models\Process;
 use App\Models\Product;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProductController extends Controller
@@ -32,6 +34,7 @@ class ProductController extends Controller
             'code' => 'required|unique:products,code',
             'name' => 'required',
             'shipping_date' => 'nullable|date',
+            'process_details' => 'nullable|string',
         ]);
 
         Product::create($validated);
@@ -55,6 +58,7 @@ class ProductController extends Controller
             'code' => 'required|unique:products,code,' . $product->id,
             'name' => 'required',
             'shipping_date' => 'nullable|date',
+            'process_details' => 'nullable|string',
         ]);
 
         $product->update($validated);
@@ -141,6 +145,7 @@ class ProductController extends Controller
                 'code' => $row[0],
                 'name' => $row[1],
                 'shipping_date' => $row[2] ?? null,
+                'process_details' => $row[3] ?? null,
             ]);
         }
 
@@ -151,101 +156,196 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success', "Products imported successfully. (Processed in {$duration} seconds)");
     }
 
-    public function generatePlans()
+    public function generatePlans(Request $request)
     {
+        $start = $request->input('start_time', Carbon::now()->startOfDay());
+
+        $apiUrl = 'https://rest.mps.rawp.my.id/schedule';
+
         $startTime = microtime(true);
 
-        // CONFIG
-        $speeds = [8000, 4000, 2000, 2000, 4000];
-        $quantity = 8000;
-        $gapBetweenProcesses = 10; // 30 menit antar proses
-        $shiftStep = 15;           // kalau bentrok, geser mundur 15 menit
-        $maxTries = 200;
+        $start_products = Product::orderBy('shipping_date')->first();
 
-        // Ambil akhir jadwal per mesin
-        $rawSchedules = Schedule::select('machine_id', DB::raw('MAX(end_time) as latest_end'))
-            ->groupBy('machine_id')
+        $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+
+        // dd($start);
+
+        $products = DB::table('products')
+            ->select(
+                'id',
+                'code',
+                'name',
+                DB::raw('shipping_date as shipment_deadline'),
+                'process_details',
+                'created_at',
+                'updated_at'
+            )
             ->get();
 
-        $machineAvailableAt = [];
-        foreach ($rawSchedules as $row) {
-            $machineAvailableAt[$row->machine_id] = Carbon::parse($row->latest_end);
-        }
-        foreach (range(1, 5) as $machineId) {
-            if (!isset($machineAvailableAt[$machineId])) {
-                $machineAvailableAt[$machineId] = Carbon::now();
-            }
-        }
+        // dd($products);
 
-        // Ambil semua produk
-        $products = Product::orderBy('shipping_date')->get();
+        $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
 
-        foreach ($products as $product) {
+        $datas = [
+            'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
+            'products' => $products->map(function ($product) use ($operations) {
+                // Ambil array id dari process_details
+                $operationIds = is_array($product->process_details)
+                    ? $product->process_details
+                    : explode(',', $product->process_details);
 
-            $shipmentDeadline = Carbon::parse($product->shipping_date)->subMinutes(30); // Kurangi 30 menit sebagai buffer
+                $tasks = [];
+                foreach ($operationIds as $opId) {
+                    $opId = trim($opId);
+                    if ($opId && isset($operations[$opId])) {
+                        $duration = $operations[$opId]->duration ?? 0;
+                        $tasks[] = [(int) $opId, $duration];
+                    }
+                }
 
-            // 1️⃣ HITUNG DURASI MASING2 PROSES
-            $durations = [];
-            for ($i = 1; $i <= 5; $i++) {
-                $planSpeed = $speeds[$i - 1];
-                $durations[$i] = ($planSpeed / $quantity) * 60;
-            }
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
+                    'tasks' => $tasks,
+                ];
+            })->toArray(),
+        ];
 
-            // echo "🔄 Product {$product->id} - Shipment Date: {$shipmentDeadline->toDateTimeString()}<br>";
+        // return response()->json($datas);
 
-            // dd($durations);
+        // Kirim data ke API
+        $response = Http::post($apiUrl, $datas);
 
-            // 2️⃣ MULAI PLANNING DARI SHIPMENT DATE
-            $endTimes = [];
-            $startTimes = [];
+        // dd($response->json());
+        // return $response->json();
 
-            $endTimes[5] = $shipmentDeadline->copy();
-            $startTimes[5] = $endTimes[5]->copy()->subMinutes($durations[5]);
+        $response_data = $response->object();
+        // dd($response_data->tasks);
 
-            for ($i = 4; $i >= 1; $i--) {
-                $endTimes[$i] = $startTimes[$i + 1]->copy()->subMinutes($gapBetweenProcesses);
-                $startTimes[$i] = $endTimes[$i]->copy()->subMinutes($durations[$i]);
-            }
-
-            // 4️⃣ SIMPAN KE DATABASE
-            $lastSchedulePerProcess = [];
-            $prevScheduleId = null;
-
-            for ($i = 1; $i <= 5; $i++) {
-                $planSpeed = $speeds[$i - 1];
-                $conversion = $planSpeed / $quantity;
-                $duration = $durations[$i];
-
-                $schedule = Schedule::create([
-                    'product_id' => $product->id,
-                    'process_id' => $i,
-                    'machine_id' => $i,
-                    'previous_schedule_id' => $prevScheduleId,
-                    'process_dependency_id' => $lastSchedulePerProcess[$i] ?? null,
-                    'is_start_process' => $i == 1,
-                    'is_final_process' => $i == 5,
-                    'quantity' => $quantity,
-                    'plan_speed' => $planSpeed,
-                    'conversion_value' => $conversion,
-                    'plan_duration' => $duration,
-                    'start_time' => $startTimes[$i],
-                    'end_time' => $endTimes[$i],
-                ]);
-
-                $prevScheduleId = $schedule->id;
-                $machineAvailableAt[$i] = $endTimes[$i]->copy();
-                $lastSchedulePerProcess[$i] = $schedule->id;
-            }
-
-            // echo "✅ Product {$product->id} berhasil dijadwalkan\n";
+        foreach ($response_data->tasks as $schedule) {
+            // dd($schedule->operation_id);
+            Schedule::create([
+                'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
+                // 'process_id' => $schedule->process_id ?? $schedule->processId ?? null,
+                // 'machine_id' => $schedule->machine_id ?? $schedule->machineId ?? null,
+                'operation_id' => $schedule->operation_id ?? null,
+                // 'previous_schedule_id' => $schedule->previous_schedule_id ?? $schedule->previousScheduleId ?? null,
+                // 'process_dependency_id' => $schedule->process_dependency_id ?? $schedule->processDependencyId ?? null,
+                'is_start_process' => $schedule->is_start_process ?? $schedule->isStartProcess ?? false,
+                'is_final_process' => $schedule->is_final_process ?? $schedule->isFinalProcess ?? false,
+                'quantity' => $schedule->quantity ?? 0,
+                'plan_speed' => $schedule->plan_speed ?? 0,
+                'conversion_value' => $schedule->conversion_value ?? 0,
+                'plan_duration' => $schedule->duration ?? 0,
+                'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
+                'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+            ]);
         }
 
-        // echo "✅ Semua produk berhasil dijadwalkan.\n";
+        // dd(Schedule::all());
 
-        $duration = round(microtime(true) - $startTime, 2);
+        if ($response->successful()) {
+            return redirect()->route('plan-simulate.index')->with('success', 'Plans generated successfully.');
+        }
 
-        return redirect()->route('products.index')->with('success', 'All products have been scheduled successfully. Processed in ' . $duration . ' seconds.');
+        return back()->withErrors('Failed to generate plans.');
     }
+    // public function generatePlans(Request $request)
+    // {
+    //     $startTime = microtime(true);
+
+    //     // CONFIG
+    //     $speeds = [8000, 4000, 2000, 2000, 4000];
+    //     $quantity = 8000;
+    //     $gapBetweenProcesses = 10; // 30 menit antar proses
+    //     $shiftStep = 15;           // kalau bentrok, geser mundur 15 menit
+    //     $maxTries = 200;
+
+    //     // Ambil akhir jadwal per mesin
+    //     $rawSchedules = Schedule::select('machine_id', DB::raw('MAX(end_time) as latest_end'))
+    //         ->groupBy('machine_id')
+    //         ->get();
+
+    //     $machineAvailableAt = [];
+    //     foreach ($rawSchedules as $row) {
+    //         $machineAvailableAt[$row->machine_id] = Carbon::parse($row->latest_end);
+    //     }
+    //     foreach (range(1, 5) as $machineId) {
+    //         if (!isset($machineAvailableAt[$machineId])) {
+    //             $machineAvailableAt[$machineId] = Carbon::now();
+    //         }
+    //     }
+
+    //     // Ambil semua produk
+    //     $products = Product::orderBy('shipping_date')->get();
+
+    //     foreach ($products as $product) {
+
+    //         $shipmentDeadline = Carbon::parse($product->shipping_date)->subMinutes(30); // Kurangi 30 menit sebagai buffer
+
+    //         // 1️⃣ HITUNG DURASI MASING2 PROSES
+    //         $durations = [];
+    //         for ($i = 1; $i <= 5; $i++) {
+    //             $planSpeed = $speeds[$i - 1];
+    //             $durations[$i] = ($planSpeed / $quantity) * 60;
+    //         }
+
+    //         // echo "🔄 Product {$product->id} - Shipment Date: {$shipmentDeadline->toDateTimeString()}<br>";
+
+    //         // dd($durations);
+
+    //         // 2️⃣ MULAI PLANNING DARI SHIPMENT DATE
+    //         $endTimes = [];
+    //         $startTimes = [];
+
+    //         $endTimes[5] = $shipmentDeadline->copy();
+    //         $startTimes[5] = $endTimes[5]->copy()->subMinutes($durations[5]);
+
+    //         for ($i = 4; $i >= 1; $i--) {
+    //             $endTimes[$i] = $startTimes[$i + 1]->copy()->subMinutes($gapBetweenProcesses);
+    //             $startTimes[$i] = $endTimes[$i]->copy()->subMinutes($durations[$i]);
+    //         }
+
+    //         // 4️⃣ SIMPAN KE DATABASE
+    //         $lastSchedulePerProcess = [];
+    //         $prevScheduleId = null;
+
+    //         for ($i = 1; $i <= 5; $i++) {
+    //             $planSpeed = $speeds[$i - 1];
+    //             $conversion = $planSpeed / $quantity;
+    //             $duration = $durations[$i];
+
+    //             $schedule = Schedule::create([
+    //                 'product_id' => $product->id,
+    //                 'process_id' => $i,
+    //                 'machine_id' => $i,
+    //                 'previous_schedule_id' => $prevScheduleId,
+    //                 'process_dependency_id' => $lastSchedulePerProcess[$i] ?? null,
+    //                 'is_start_process' => $i == 1,
+    //                 'is_final_process' => $i == 5,
+    //                 'quantity' => $quantity,
+    //                 'plan_speed' => $planSpeed,
+    //                 'conversion_value' => $conversion,
+    //                 'plan_duration' => $duration,
+    //                 'start_time' => $startTimes[$i],
+    //                 'end_time' => $endTimes[$i],
+    //             ]);
+
+    //             $prevScheduleId = $schedule->id;
+    //             $machineAvailableAt[$i] = $endTimes[$i]->copy();
+    //             $lastSchedulePerProcess[$i] = $schedule->id;
+    //         }
+
+    //         // echo "✅ Product {$product->id} berhasil dijadwalkan\n";
+    //     }
+
+    //     // echo "✅ Semua produk berhasil dijadwalkan.\n";
+
+    //     $duration = round(microtime(true) - $startTime, 2);
+
+    //     return redirect()->route('products.index')->with('success', 'All products have been scheduled successfully. Processed in ' . $duration . ' seconds.');
+    // }
 
 
     // public function generatePlans()

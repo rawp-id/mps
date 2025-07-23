@@ -47,6 +47,9 @@ route::get('reset', function () {
     return redirect()->back()->with('success', 'Data has been reset successfully.');
 })->name('reset');
 
-Route::get('generate/plan' , [ProductController::class, 'generatePlans'])->name('plan.generate');
+// Route::post('generate/plan' , [ProductController::class, 'generatePlans'])->name('plan.generate');
 
 Route::resource('products', ProductController::class);
+Route::resource('machines', \App\Http\Controllers\MachineController::class);
+Route::resource('processes', \App\Http\Controllers\ProcessController::class);
+Route::resource('operations', \App\Http\Controllers\OperationsController::class);
