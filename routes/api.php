@@ -8,4 +8,4 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::post('generate/plan' , [ProductController::class, 'generatePlans'])->name('plan.generate');
+// Route::post('generate/plan' , [ProductController::class, 'generatePlans'])->name('plan.generate');
