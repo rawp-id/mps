@@ -16,12 +16,12 @@
 
     <div class="container mt-4">
         <h4 class="mb-3">Gantt Chart</h4>
-        <div id="gantt_chart" style="width: 100%; height: auto;"></div>
+        <div id="timeline" style="width: 100%; height: 400px; border: 1px solid #ccc;"></div>
     </div>
 
-    <h4 class="mt-5">Schedules</h4>
+    {{-- <h4 class="mt-5">Schedules</h4> --}}
 
-    <table class="table table-bordered table-striped">
+    {{-- <table class="table table-bordered table-striped">
         <thead>
             <tr>
                 <th>#</th>
@@ -48,50 +48,73 @@
                 </tr>
             @endforeach
         </tbody>
-    </table>
+    </table> --}}
 
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    {{-- vis.js --}}
+    <link href="https://unpkg.com/vis-timeline@latest/dist/vis-timeline-graph2d.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/vis-timeline@latest/dist/vis-timeline-graph2d.min.js"></script>
     <script>
-        google.charts.load('current', {
-            'packages': ['gantt']
-        });
-        google.charts.setOnLoadCallback(drawChart);
+        document.addEventListener('DOMContentLoaded', () => {
+            const schedules = @json($schedules);
+            const groups = [];
+            const items = [];
 
-        function drawChart() {
-            var data = new google.visualization.DataTable();
-            data.addColumn('string', 'ID');
-            data.addColumn('string', 'Task Name');
-            data.addColumn('string', 'Resource');
-            data.addColumn('date', 'Start Date');
-            data.addColumn('date', 'End Date');
-            data.addColumn('number', 'Duration');
-            data.addColumn('number', 'Percent Complete');
-            data.addColumn('string', 'Dependencies');
+            // Kumpulkan mesin unik
+            const productMap = new Map();
+            schedules.forEach(s => {
+                const id = s.product ? parseInt(s.product.id) : 0;
+                const name = (s.product?.name?.length > 20) ? s.product.name.substring(0, 20) + '…' : (s
+                    .product?.name ?? 'Unknown Product');
+                productMap.set(id, name);
+            });
 
-            data.addRows([
-                @foreach ($schedules as $schedule)
-                    [
-                        '{{ $schedule->id }}',
-                        '{{ $schedule->process->name ?? "Process " . $schedule->process_id }}',
-                        '{{ $schedule->machine->name ?? "Machine " . $schedule->machine_id }}',
-                        new Date('{{ \Carbon\Carbon::parse($schedule->start_time)->format('Y-m-d H:i:s') }}'),
-                        new Date('{{ \Carbon\Carbon::parse($schedule->end_time)->format('Y-m-d H:i:s') }}'),
-                        null,
-                        0,
-                        '{{ $schedule->previous_schedule_id ?? '' }}'
-                    ]{{ !$loop->last ? ',' : '' }}
-                @endforeach
-            ]);
-
-            var options = {
-                height: {{ count($schedules) * 50 + 50 }},
-                gantt: {
-                    trackHeight: 30
+            // 2️⃣ Buat array groups terurut ID ASC
+            // Urutkan produk sesuai urutan kemunculan pertama pada schedules (berdasarkan schedule id)
+            const seen = new Set();
+            // Sort schedules ascending by schedule id to get products in order of first appearance
+            schedules.slice().sort((a, b) => a.id - b.id).forEach(s => {
+                const id = s.product ? parseInt(s.product.id) : 0;
+                if (!seen.has(id)) {
+                    groups.push({
+                        id,
+                        content: productMap.get(id)
+                    });
+                    seen.add(id);
                 }
+            });
+
+            // 3️⃣ Buat items
+            schedules.forEach(s => {
+                items.push({
+                    id: s.id,
+                    group: s.product ? parseInt(s.product.id) : 0,
+                    content: s.operation?.name ?? 'Process',
+                    start: s.start_time,
+                    end: s.end_time
+                });
+            });
+
+            // 4️⃣ Render timeline
+            const container = document.getElementById('timeline');
+            const options = {
+                stack: false,
+                showMajorLabels: true,
+                showCurrentTime: true,
+                zoomMin: 1000 * 60 * 60, // 1 hour
+                zoomMax: 1000 * 60 * 60 * 24 * 30, // 1 month
+                orientation: 'top'
             };
 
-            var chart = new google.visualization.Gantt(document.getElementById('gantt_chart'));
-            chart.draw(data, options);
-        }
+            const timeline = new vis.Timeline(container);
+            timeline.setOptions(options);
+            timeline.setGroups(new vis.DataSet(groups));
+            timeline.setItems(new vis.DataSet(items));
+
+            timeline.on('select', function(properties) {
+                if (properties.items.length > 0) {
+                    openEditModal(properties.items[0]);
+                }
+            });
+        });
     </script>
 @endsection

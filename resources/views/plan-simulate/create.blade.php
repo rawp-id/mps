@@ -8,7 +8,7 @@
 <form action="{{ route('plan-simulate.store') }}" method="POST">
     @csrf
 
-    <div class="mb-3">
+    {{-- <div class="mb-3">
         <label for="name" class="form-label">Plan Name</label>
         <input type="text" name="name" id="name"
             class="form-control @error('name') is-invalid @enderror"
@@ -16,10 +16,11 @@
         @error('name')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
-    </div>
+    </div> --}}
 
     <div class="mb-3">
         <label for="product_id" class="form-label">Product</label>
+        <input type="text" id="product_search" class="form-control mb-2" placeholder="Search product...">
         <select name="product_id" id="product_id"
             class="form-select @error('product_id') is-invalid @enderror" required>
             <option value="">-- Select Product --</option>
@@ -34,6 +35,24 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const select = document.getElementById('product_id');
+            const searchBox = document.getElementById('product_search');
+            searchBox.addEventListener('input', function () {
+                const filter = searchBox.value.toLowerCase();
+                Array.from(select.options).forEach(function(option, i) {
+                    if (i === 0) {
+                        option.style.display = '';
+                        return;
+                    }
+                    const match = option.text.toLowerCase().includes(filter);
+                    option.style.display = match ? '' : 'none';
+                    if (match) select.selectedIndex = i;
+                });
+            });
+        });
+    </script>
 
     <div class="mb-3">
         <label for="description" class="form-label">Description (Optional)</label>

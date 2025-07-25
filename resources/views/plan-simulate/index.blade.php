@@ -34,14 +34,14 @@
                         <td>{{ $plan->name }}</td>
                         <td>{{ $plan->product->name ?? '-' }}</td>
                         <td>{{ $plan->description ?? '-' }}</td>
-                        <td>
-                            <a href="{{route('plan-simulate.show', $plan->id)}}" class="btn btn-warning">
+                        <td class="d-flex">
+                            <a href="{{route('plan-simulate.show', $plan->id)}}" class="btn btn-warning btn-sm me-1">
                                 <i class="bi bi-eye"></i> View
                             </a>
                             <form action="{{ route('plan-simulate.destroy', $plan->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this plan?')">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this plan?')">
                                     <i class="bi bi-trash"></i> Delete
                                 </button>
                             </form>

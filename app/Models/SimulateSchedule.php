@@ -33,4 +33,9 @@ class SimulateSchedule extends Model
     {
         return $this->belongsTo(Plan::class);
     }
+
+    public function operation()
+    {
+        return $this->belongsTo(Operations::class);
+    }
 }

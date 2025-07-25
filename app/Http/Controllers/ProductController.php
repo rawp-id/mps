@@ -17,9 +17,18 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::latest()->paginate(10);
+        $query = Product::query();
+
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%");
+        }
+
+        $products = $query->paginate(10);
+
         return view('products.index', compact('products'));
     }
 
@@ -44,7 +53,12 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        return view('products.show', compact('product'));
+        $ganttData = Schedule::where('product_id', $product->id)
+            ->with(['process', 'machine', 'operation', 'operation.machine', 'operation.process'])
+            ->orderBy('start_time')
+            ->get();
+
+        return view('products.show', compact('product', 'ganttData'));
     }
 
     public function edit(Product $product)
@@ -238,6 +252,7 @@ class ProductController extends Controller
             return redirect()->route('products.index')->withErrors('Error: ' . $e->getMessage());
         }
     }
+
     // public function generatePlans(Request $request)
     // {
     //     $startTime = microtime(true);
