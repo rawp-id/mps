@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
             $table->foreignId('process_id')->nullable()->constrained('processes')->onDelete('cascade');
             $table->foreignId('machine_id')->nullable()->constrained('machines')->onDelete('cascade');
             $table->foreignId('operation_id')->nullable()->constrained('operations')->onDelete('cascade');
@@ -27,6 +28,7 @@ return new class extends Migration
             $table->integer('plan_duration')->default(0);
             $table->dateTime('start_time')->nullable();
             $table->dateTime('end_time')->nullable();
+            $table->boolean('is_completed')->default(false);
             $table->timestamps();
         });
     }

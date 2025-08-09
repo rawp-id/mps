@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('description')->nullable();
-            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
+            $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
+            $table->boolean('is_applied')->default(false);
+            $table->dateTime('start_date')->nullable();
             $table->timestamps();
         });
     }

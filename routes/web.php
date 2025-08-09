@@ -49,7 +49,14 @@ route::get('reset', function () {
 
 Route::get('generate/plan' , [ProductController::class, 'generatePlans'])->name('plan.generate');
 
+Route::patch('reports/{id}/update-process-status', [\App\Http\Controllers\ReportController::class, 'updateProcessStatus'])->name('reports.updateStatus');
+Route::patch('reports/{id}/update-is-completed', [\App\Http\Controllers\ReportController::class, 'updateIsCompleted'])->name('reports.updateIsCompleted');
+
+Route::get('apply-schedule/{plan}', [PlanSimulateController::class, 'applyToSchedule'])->name('apply.schedule');
+
 Route::resource('products', ProductController::class);
 Route::resource('machines', \App\Http\Controllers\MachineController::class);
 Route::resource('processes', \App\Http\Controllers\ProcessController::class);
 Route::resource('operations', \App\Http\Controllers\OperationsController::class);
+Route::resource('reports', \App\Http\Controllers\ReportController::class);
+Route::resource('co', \App\Http\Controllers\CoController::class);

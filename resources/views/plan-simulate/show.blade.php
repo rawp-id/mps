@@ -5,57 +5,186 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Plan: {{ $plan->name }}</h1>
-        <a href="{{ route('plan-simulate.index') }}" class="btn btn-secondary">Back to List</a>
+        <div class="d-flex">
+            <a href="{{ route('plan-simulate.edit', $plan->id) }}" class="btn btn-warning me-2">Edit</a>
+            <a href="" class="btn btn-info me-2">Generate</a>
+            <a href="{{ route('apply.schedule', $plan->id) }}" class="btn btn-primary me-2">Apply To Schedule</a>
+            <a href="{{ route('plan-simulate.index') }}" class="btn btn-secondary">Back to List</a>
+        </div>
     </div>
 
-    <p><strong>Slug:</strong> {{ $plan->slug }}</p>
-    <p><strong>Product:</strong> {{ $plan->product->name ?? '-' }}</p>
+    {{-- <p><strong>Slug:</strong> {{ $plan->slug }}</p> --}}
+    <p><strong>Product:</strong></p>
+    <ul>
+        @empty($plan->planProductCos)
+            <li>No products associated with this plan.</li>
+        @else
+            @foreach ($plan->planProductCos as $planProductCo)
+                <li>{{ $planProductCo->co->name }} - {{ $planProductCo->co->product->name }}</li>
+            @endforeach
+        @endif
+    </ul>
+
     <p><strong>Description:</strong> {{ $plan->description ?? '-' }}</p>
 
     <hr>
 
     <div class="container mt-4">
-        <h4 class="mb-3">Gantt Chart</h4>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-3">Gantt Chart</h4>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                Filter
+            </button>
+            <!-- Filter Modal -->
+            <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="filterModalLabel">Filter Schedules</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="filterForm">
+                                <div class="mb-3">
+                                    <label for="filterStartDate" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="filterStartDate" name="start_date"
+                                        value="{{ $startDate }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="filterEndDate" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="filterEndDate" name="end_date"
+                                        value="{{ $endDate }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="filterMachine" class="form-label">Machine</label>
+                                    <input type="text" class="form-control mb-2" id="machineSearch"
+                                        placeholder="Search machine...">
+                                    <select class="form-select" id="filterMachine" name="machine_id">
+                                        <option value="">All</option>
+                                        @foreach ($machines as $machine)
+                                            <option value="{{ $machine->id }}"
+                                                {{ request('machine_id') == $machine->id ? 'selected' : '' }}>
+                                                {{ $machine->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        const searchInput = document.getElementById('machineSearch');
+                                        const machineSelect = document.getElementById('filterMachine');
+                                        const originalOptions = Array.from(machineSelect.options);
+
+                                        searchInput.addEventListener('input', function() {
+                                            const search = this.value.toLowerCase();
+                                            machineSelect.innerHTML = '';
+                                            originalOptions.forEach(option => {
+                                                if (
+                                                    option.value === '' ||
+                                                    option.text.toLowerCase().includes(search)
+                                                ) {
+                                                    machineSelect.appendChild(option.cloneNode(true));
+                                                }
+                                            });
+                                        });
+                                    });
+                                </script>
+                                <div class="mb-3">
+                                    <label for="filterProcess" class="form-label">Process</label>
+                                    <input type="text" class="form-control mb-2" id="processSearch"
+                                        placeholder="Search process...">
+                                    <select class="form-select" id="filterProcess" name="process_id">
+                                        <option value="">All</option>
+                                        @foreach ($processes as $item)
+                                            <option value="{{ $item->id }}"
+                                                {{ request('process_id') == $item->id ? 'selected' : '' }}>
+                                                {{ $item->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        const processSearchInput = document.getElementById('processSearch');
+                                        const processSelect = document.getElementById('filterProcess');
+                                        const processOriginalOptions = Array.from(processSelect.options);
+
+                                        processSearchInput.addEventListener('input', function() {
+                                            const search = this.value.toLowerCase();
+                                            processSelect.innerHTML = '';
+                                            processOriginalOptions.forEach(option => {
+                                                if (
+                                                    option.value === '' ||
+                                                    option.text.toLowerCase().includes(search)
+                                                ) {
+                                                    processSelect.appendChild(option.cloneNode(true));
+                                                }
+                                            });
+                                        });
+                                    });
+                                </script>
+                                <!-- Add more filters as needed -->
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearFilterBtn">Clear
+                                Filter</button>
+                            <button type="button" class="btn btn-primary" id="applyFilterBtn">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Apply filter
+                    document.getElementById('applyFilterBtn').addEventListener('click', function() {
+                        const form = document.getElementById('filterForm');
+                        const params = new URLSearchParams(new FormData(form));
+                        const url = new URL(window.location.href);
+                        // Remove old filter params
+                        ['start_date', 'end_date', 'category', 'machine_id', 'process_id'].forEach(key => url
+                            .searchParams.delete(key));
+                        // Add new filter params
+                        params.forEach((value, key) => {
+                            if (value) url.searchParams.set(key, value);
+                        });
+                        window.location.href = url.toString();
+                    });
+
+                    // Clear filter
+                    document.getElementById('clearFilterBtn').addEventListener('click', function() {
+                        const url = new URL(window.location.href);
+                        // Remove all filter params
+                        ['start_date', 'end_date', 'category', 'machine_id', 'process_id'].forEach(key => url
+                            .searchParams.delete(key));
+                        window.location.href = url.toString();
+                    });
+                });
+            </script>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.querySelectorAll('.dropdown-item[data-product]').forEach(function(item) {
+                        item.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const productId = this.getAttribute('data-product');
+                            // TODO: Implement filtering logic for the timeline based on productId
+                            // Example: filterTimeline(productId);
+                        });
+                    });
+                });
+            </script>
+        </div>
         <div id="timeline" style="width: 100%; height: 400px; border: 1px solid #ccc;"></div>
     </div>
-
-    {{-- <h4 class="mt-5">Schedules</h4> --}}
-
-    {{-- <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Process</th>
-                <th>Machine</th>
-                <th>Quantity</th>
-                <th>Speed</th>
-                <th>Duration</th>
-                <th>Start</th>
-                <th>End</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($schedules as $schedule)
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $schedule->process->name ?? 'Process ' . $schedule->process_id }}</td>
-                    <td>{{ $schedule->machine->name ?? 'Machine ' . $schedule->machine_id }}</td>
-                    <td>{{ $schedule->quantity }}</td>
-                    <td>{{ $schedule->plan_speed }}</td>
-                    <td>{{ round($schedule->plan_duration, 2) }} min</td>
-                    <td>{{ $schedule->start_time }}</td>
-                    <td>{{ $schedule->end_time }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table> --}}
 
     {{-- vis.js --}}
     <link href="https://unpkg.com/vis-timeline@latest/dist/vis-timeline-graph2d.min.css" rel="stylesheet" />
     <script src="https://unpkg.com/vis-timeline@latest/dist/vis-timeline-graph2d.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const schedules = @json($schedules);
+            let schedules = @json($schedules);
+
             const groups = [];
             const items = [];
 
@@ -63,15 +192,26 @@
             const productMap = new Map();
             schedules.forEach(s => {
                 const id = s.product ? parseInt(s.product.id) : 0;
-                const name = (s.product?.name?.length > 20) ? s.product.name.substring(0, 20) + '…' : (s
-                    .product?.name ?? 'Unknown Product');
+                let name = '';
+                // Jika ada filter process_id atau machine_id di URL, tambahkan ke nama
+                const urlParams = new URLSearchParams(window.location.search);
+                const processId = urlParams.get('process_id');
+                const machineId = urlParams.get('machine_id');
+
+                if (s.operation?.process && processId && s.operation.process.id == processId) {
+                    name = s.operation.process.name;
+                } else if (s.machine && machineId && s.machine.id == machineId) {
+                    name = s.machine.name;
+                } else {
+                    name = (s.product?.name?.length > 20) ?
+                        s.product.name.substring(0, 20) + '…' :
+                        (s.product?.name ?? 'Unknown Product');
+                }
                 productMap.set(id, name);
             });
 
-            // 2️⃣ Buat array groups terurut ID ASC
-            // Urutkan produk sesuai urutan kemunculan pertama pada schedules (berdasarkan schedule id)
+            // Buat array groups terurut ID ASC
             const seen = new Set();
-            // Sort schedules ascending by schedule id to get products in order of first appearance
             schedules.slice().sort((a, b) => a.id - b.id).forEach(s => {
                 const id = s.product ? parseInt(s.product.id) : 0;
                 if (!seen.has(id)) {
@@ -83,18 +223,33 @@
                 }
             });
 
-            // 3️⃣ Buat items
+            // Buat items
             schedules.forEach(s => {
                 items.push({
                     id: s.id,
                     group: s.product ? parseInt(s.product.id) : 0,
-                    content: s.operation?.name ?? 'Process',
+                    content: (() => {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const processId = urlParams.get('process_id');
+                        const machineId = urlParams.get('machine_id');
+                        if (processId && s.operation?.process && s.operation.process.id ==
+                            processId) {
+                            return s.product?.name ?? 'Product';
+                        } else if (machineId && s.machine && s.machine.id == machineId) {
+                            return s.machine.name;
+                        } else {
+                            return s.operation?.name ?? 'Process';
+                        }
+                    })(),
                     start: s.start_time,
-                    end: s.end_time
+                    end: s.end_time,
+                    locked: s.locked ?? false,
+                    duration: s.duration ?? '',
+                    plan_duration: s.plan_duration ?? '',
                 });
             });
 
-            // 4️⃣ Render timeline
+            // Render timeline
             const container = document.getElementById('timeline');
             const options = {
                 stack: false,
@@ -110,10 +265,71 @@
             timeline.setGroups(new vis.DataSet(groups));
             timeline.setItems(new vis.DataSet(items));
 
+            // Modal HTML
+            const modalHtml = `
+            <div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                <h5 class="modal-title" id="editScheduleModalLabel">Edit Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                <form id="editScheduleForm">
+                  <div class="mb-3">
+                    <label for="editDuration" class="form-label">Duration (Default - <span id="planDurationLabel"></span> Menit)</label>
+                    <input type="text" class="form-control" id="editDuration" name="duration">
+                  </div>
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="editLocked" name="locked">
+                    <label class="form-check-label" for="editLocked">Lock</label>
+                  </div>
+                  <input type="hidden" id="editScheduleId" name="id">
+                </form>
+                  </div>
+                  <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveScheduleBtn">Save</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            `;
+            if (!document.getElementById('editScheduleModal')) {
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            }
+
             timeline.on('select', function(properties) {
                 if (properties.items.length > 0) {
-                    openEditModal(properties.items[0]);
+                    const selectedItem = items.find(item => item.id === properties.items[0]);
+                    // console.log('Selected item:', selectedItem);
+                    // Isi modal dengan data
+                    document.getElementById('editScheduleId').value = selectedItem.id;
+                    document.getElementById('editDuration').value = selectedItem.duration;
+                    document.getElementById('editLocked').checked = !!selectedItem.locked;
+                    document.getElementById('planDurationLabel').innerText = selectedItem.plan_duration ||
+                        'N/A';
+                    // Tampilkan modal
+                    const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+                    modal.show();
                 }
+            });
+
+            // Simpan perubahan
+            document.getElementById('saveScheduleBtn').addEventListener('click', function() {
+                const id = document.getElementById('editScheduleId').value;
+                const duration = document.getElementById('editDuration').value;
+                const locked = document.getElementById('editLocked').checked;
+                // TODO: Kirim ke backend via AJAX/fetch jika ingin simpan ke server
+                // Untuk demo, update di frontend saja
+                const idx = items.findIndex(item => item.id == id);
+                if (idx !== -1) {
+                    items[idx].duration = duration;
+                    items[idx].locked = locked;
+                    timeline.setItems(new vis.DataSet(items));
+                }
+                // Tutup modal
+                bootstrap.Modal.getInstance(document.getElementById('editScheduleModal')).hide();
             });
         });
     </script>

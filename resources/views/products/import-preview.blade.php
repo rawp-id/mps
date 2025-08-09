@@ -9,7 +9,7 @@
     <div class="alert alert-warning">No data found in the file.</div>
     <a href="{{ route('products.import') }}" class="btn btn-secondary">Back</a>
 @else
-    <form action="{{ route('products.import.store') }}" method="POST">
+    <form action="{{ route('products.import.store') }}" method="POST" class="mb-3">
         @csrf
 
         <table class="table table-bordered">

@@ -21,6 +21,10 @@ class Plan extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    public function co()
+    {
+        return $this->belongsTo(Co::class);
+    }
     public function schedules()
     {
         return $this->hasMany(SimulateSchedule::class, 'plan_id');
@@ -28,5 +32,17 @@ class Plan extends Model
     public function getRouteKeyName()
     {
         return 'slug';
+    }
+    public function planProductCos()
+    {
+        return $this->hasMany(PlanProductCo::class);
+    }
+    public function cos()
+    {
+        return $this->belongsToMany(Co::class, 'plan_product_cos');
+    }
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'plan_product_cos');
     }
 }

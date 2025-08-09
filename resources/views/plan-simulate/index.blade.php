@@ -8,10 +8,6 @@
         <a href="{{ route('plan-simulate.create') }}" class="btn btn-primary">Create New Plan</a>
     </div>
 
-    {{-- @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif --}}
-
     @if ($plans->isEmpty())
         <div class="alert alert-info">
             No plan simulations found. <a href="{{ route('plan-simulate.create') }}">Create one</a>.
@@ -22,7 +18,7 @@
                 <tr>
                     <th>#</th>
                     <th>Plan Name</th>
-                    <th>Product</th>
+                    {{-- <th>Product</th> --}}
                     <th>Description</th>
                     <th>Action</th>
                 </tr>
@@ -32,7 +28,7 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>{{ $plan->name }}</td>
-                        <td>{{ $plan->product->name ?? '-' }}</td>
+                        {{-- <td>{{ $plan->product->name ?? '-' }}</td> --}}
                         <td>{{ $plan->description ?? '-' }}</td>
                         <td class="d-flex">
                             <a href="{{route('plan-simulate.show', $plan->id)}}" class="btn btn-warning btn-sm me-1">

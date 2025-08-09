@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Co;
 use Carbon\Carbon;
 use App\Models\Plan;
 use App\Models\Product;
@@ -15,122 +16,432 @@ use Illuminate\Support\Facades\Http;
 
 class PlanSimulateController extends Controller
 {
+    public static function generateSimulationSchedule($products, $start)
+    {
+        $products = Product::whereIn('id', $products)->get();
+        $urlLocal = 'http://localhost:5000/schedule';
+        $url = 'https://rest.mps.rawp.my.id/schedule';
+        $start_products = $products->orderBy('shipping_date')->first();
+        $start = $start ?? Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+        $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
+        $datas = [
+            'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
+            'products' => $products->map(function ($product) use ($operations) {
+                $operationIds = is_array($product->process_details)
+                    ? $product->process_details
+                    : explode(',', $product->process_details);
+
+                $tasks = [];
+                foreach ($operationIds as $opId) {
+                    $opId = trim($opId);
+                    if ($opId && isset($operations[$opId])) {
+                        $duration = $operations[$opId]->duration ?? 0;
+                        $tasks[] = [(int) $opId, $duration];
+                    }
+                }
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
+                    'tasks' => $tasks,
+                ];
+            })->toArray(),
+        ];
+        try {
+            try {
+                $response = Http::timeout(30)->post($urlLocal, $datas);
+                if (!$response->ok()) {
+                    // Jika gagal, coba ke API kedua
+                    $response = Http::timeout(30)->post($url, $datas);
+                }
+            } catch (\Exception $ex) {
+                // Jika gagal, coba ke API kedua
+                $response = Http::timeout(30)->post($url, $datas);
+            }
+            return $response->object();
+        } catch (\Exception $e) {
+            throw new \Exception('Gagal menghubungi API: ' . $e->getMessage());
+        }
+    }
+
     public function index()
     {
-        $plans = Plan::with('product')->get();
+        $plans = Plan::all();
         return view('plan-simulate.index', compact('plans'));
     }
 
     public function create()
     {
-        $products = \App\Models\Product::all();
-        return view('plan-simulate.create', compact('products'));
+        $plans = Plan::all();
+        $products = Product::where('is_completed', false)->get();
+        $cos = Co::with('product')->where('is_completed', false)->get(); // Ambil semua CO jika diperlukan
+        // dd($products, $cos, $plans);
+        return view('plan-simulate.create', compact('products', 'cos', 'plans'));
     }
 
     public function store(Request $request)
     {
+        // dd($request->all());
+
+        $plan = new Plan();
+
         // Generate unique name for plan
-        do {
-            $generatedName = 'PLAN-' . strtoupper(Str::random(8));
-        } while (Plan::where('name', $generatedName)->exists());
+        if (isset($request->plan_id)) {
+            $plan = Plan::findOrFail($request->plan_id);
+            $generatedName = $plan->name; // Gunakan nama yang sudah ada
+        } else if (isset($request->new_plan_name)) {
+            $generatedName = $request->new_plan_name;
+        } else {
+            do {
+                $generatedName = 'PLAN-' . strtoupper(Str::random(8));
+            } while (Plan::where('name', $generatedName)->exists());
+        }
 
         $request->merge(['name' => $generatedName]);
 
-        $request->validate([
-            'name' => 'required|string|max:255|unique:plans,name',
-            'product_id' => 'required|exists:products,id',
-            'description' => 'nullable|string|max:1000',
-        ]);
-
-        // 1. Buat Plan
-        $plan = Plan::create($request->all());
-
-        // 2. Ambil Produk terkait
-        $product = Product::findOrFail($plan->product_id);
+        // $request->validate([
+        //     'name' => 'required|string|max:255|unique:plans,name',
+        //     'product_id' => 'required|exists:products,id',
+        //     'product_ids' => 'nullable|array',
+        //     'description' => 'nullable|string|max:1000',
+        // ]);
 
         try {
-            $start = $request->input('start_time', Carbon::now()->startOfDay());
 
-            $apiUrl = 'https://rest.mps.rawp.my.id/schedule';
+            DB::beginTransaction();
 
-            $startTime = microtime(true);
+            // 1. Buat Plan
+            $plan = Plan::create($request->all());
 
-            $start_products = Product::orderBy('shipping_date')->first();
-
-            $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
-
-            $products = DB::table('products')
-                ->select(
-                    'id',
-                    'code',
-                    'name',
-                    DB::raw('shipping_date as shipment_deadline'),
-                    'process_details',
-                    'created_at',
-                    'updated_at'
-                )
-                ->get();
-
-            $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
-
-            $datas = [
-                'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
-                'products' => $products->map(function ($product) use ($operations) {
-                    $operationIds = is_array($product->process_details)
-                        ? $product->process_details
-                        : explode(',', $product->process_details);
-
-                    $tasks = [];
-                    foreach ($operationIds as $opId) {
-                        $opId = trim($opId);
-                        if ($opId && isset($operations[$opId])) {
-                            $duration = $operations[$opId]->duration ?? 0;
-                            $tasks[] = [(int) $opId, $duration];
-                        }
-                    }
-
-                    return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
-                        'tasks' => $tasks,
-                    ];
-                })->toArray(),
-            ];
-
-            $response = Http::post($apiUrl, $datas);
-
-            $response_data = $response->object();
-
-            foreach ($response_data->tasks as $schedule) {
-                SimulateSchedule::create([
+            foreach ($request->input('co_ids', []) as $coId) {
+                $plan->planProductCos()->create([
                     'plan_id' => $plan->id,
-                    'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
-                    'operation_id' => $schedule->operation_id ?? null,
-                    'is_start_process' => $schedule->is_start_process ?? $schedule->isStartProcess ?? false,
-                    'is_final_process' => $schedule->is_final_process ?? $schedule->isFinalProcess ?? false,
-                    'quantity' => $schedule->quantity ?? 0,
-                    'plan_speed' => $schedule->plan_speed ?? 0,
-                    'conversion_value' => $schedule->conversion_value ?? 0,
-                    'plan_duration' => $schedule->duration ?? 0,
-                    'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
-                    'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+                    'product_id' => null,
+                    'co_id' => $coId,
                 ]);
             }
 
-            $duration = round(microtime(true) - $startTime, 2);
+            // dd($plan->planProductCos());
 
-            if ($response->successful()) {
-                return redirect()->route('plan-simulate.index')->with('success', 'Plans generated successfully. Processed in ' . $duration . ' seconds.');
-            }
+            $coIds = $request->input('co_ids', []);
 
-            return redirect()->route('products.index')->withErrors('Failed to generate plans.');
+            $cos = Co::whereIn('id', $coIds)
+                ->get();
+
+            // dd($products);
+
+            // dd($products);
+
+            // 2. Ambil Produk terkait
+            // $product = Product::findOrFail($plan->product_id);
+
+            // $start = $request->input('start_time', Carbon::now()->startOfDay());
+
+            // $apiUrlLocal = 'http://127.0.0.1:5000/schedule';
+
+            // $apiUrl = 'https://rest.mps.rawp.my.id/schedule';
+
+            // $startTime = microtime(true);
+
+            // $start_products = Product::orderBy('shipping_date')->first();
+
+            // // Cek apakah start_product sudah ada di Schedule
+            // $schedule = Schedule::where('product_id', $start_products->id)
+            //     ->orderBy('process_id', 'asc')
+            //     ->first();
+
+            // if ($schedule) {
+            //     // Ambil process sebelumnya (jika ada)
+            //     $prevProcessId = $schedule->process_id - 1;
+            //     $prevSchedule = Schedule::where('product_id', $start_products->id)
+            //         ->where('process_id', $prevProcessId)
+            //         ->orderBy('end_time', 'desc')
+            //         ->first();
+
+            //     if ($prevSchedule) {
+            //         $start = Carbon::parse($prevSchedule->end_time);
+            //     } else {
+            //         $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+            //     }
+            // } else {
+            //     $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+            // }
+
+            // // $products = DB::table('products')
+            // //     ->select(
+            // //         'id',
+            // //         'code',
+            // //         'name',
+            // //         DB::raw('shipping_date as shipment_deadline'),
+            // //         'process_details',
+            // //         'created_at',
+            // //         'updated_at'
+            // //     )
+            // //     ->get();
+
+            // $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
+
+            // // dd($operations);
+
+            // $datas = [
+            //     'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
+            //     'products' => $products->map(function ($product) use ($operations) {
+            //         $operationIds = is_array($product->process_details)
+            //             ? $product->process_details
+            //             : explode(',', $product->process_details);
+
+            //         $tasks = [];
+            //         foreach ($operationIds as $opId) {
+            //             $opId = trim($opId);
+            //             if ($opId && isset($operations[$opId])) {
+            //                 $duration = $operations[$opId]->duration ?? 0;
+            //                 $tasks[] = [(int) $opId, $duration];
+            //             }
+            //         }
+
+            //         return [
+            //             'id' => $product->id,
+            //             'name' => $product->name,
+            //             'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
+            //             'tasks' => $tasks,
+            //         ];
+            //     })->toArray(),
+            // ];
+            // // dd($datas);
+
+            // try {
+            //     try {
+            //         $response = Http::timeout(30)->post($apiUrlLocal, $datas);
+            //         if (!$response->ok()) {
+            //             // Jika gagal, coba ke API kedua
+            //             $response = Http::timeout(30)->post($apiUrl, $datas);
+            //         }
+            //     } catch (\Exception $ex) {
+            //         // Jika gagal, coba ke API kedua
+            //         $response = Http::timeout(30)->post($apiUrl, $datas);
+            //     }
+            //     $response_data = $response->object();
+            // } catch (\Exception $e) {
+            //     DB::rollBack();
+            //     return redirect()->route('plan-simulate.index')->withErrors('Gagal menghubungi API: ' . $e->getMessage());
+            // }
+
+            // foreach ($response_data->tasks as $schedule) {
+            //     // dd($schedule);
+            //     $simulate = SimulateSchedule::create([
+            //         'plan_id' => $plan->id,
+            //         'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
+            //         'operation_id' => $schedule->operation_id ?? null,
+            //         'quantity' => $schedule->quantity ?? 0,
+            //         'plan_speed' => $schedule->plan_speed ?? 0,
+            //         'conversion_value' => $schedule->conversion_value ?? 0,
+            //         'plan_duration' => $schedule->duration ?? 0,
+            //         'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
+            //         'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+            //     ]);
+
+            //     // dd($simulate);
+            // }
+
+            // dd(SimulateSchedule::all());
+
+            // $duration = round(microtime(true) - $startTime, 2);
+
+            // dd($duration);
+
+            // dd($response_data, isset($response_data->tasks));
+
+            // if ($response_data && isset($response_data->tasks)) {
+            // }
+            DB::commit();
+            // return redirect()->route('plan-simulate.index')->with('success', 'Plans generated successfully. Processed in ' . $duration . ' seconds.');
+            return redirect()->route('plan-simulate.index')->with('success', 'Plans created successfully.');
+
+            // DB::rollBack();
+            // return redirect()->route('plan-simulate.index')->withErrors('Failed to generate plans.');
         } catch (\Throwable $e) {
-            return redirect()->route('products.index')->withErrors('Error: ' . $e->getMessage());
+            return redirect()->route('plan-simulate.index')->withErrors('Error: ' . $e->getMessage());
         }
 
         // return redirect()->route('plan-simulate.index')->with('success', 'Plan dan simulasi jadwal berhasil dibuat tanpa bentrok.');
     }
+
+    // public function store(Request $request)
+    // {
+    //     dd($request->all());
+    //     // Generate unique name for plan
+    //     do {
+    //         $generatedName = 'PLAN-' . strtoupper(Str::random(8));
+    //     } while (Plan::where('name', $generatedName)->exists());
+
+    //     $request->merge(['name' => $generatedName]);
+
+    //     $request->validate([
+    //         'name' => 'required|string|max:255|unique:plans,name',
+    //         // 'product_id' => 'required|exists:products,id',
+    //         'product_ids' => 'nullable|array',
+    //         'description' => 'nullable|string|max:1000',
+    //     ]);
+
+    //     try {
+
+    //         DB::beginTransaction();
+
+    //         // 1. Buat Plan
+    //         $plan = Plan::create($request->all());
+
+    //         foreach ($request->input('product_ids', []) as $productId) {
+    //             $plan->planProductCos()->create([
+    //                 'plan_id' => $plan->id,
+    //                 'product_id' => $productId,
+    //                 'co_id' => null, // Atau bisa diisi dengan CO yang relevan jika ada
+    //             ]);
+    //         }
+
+    //         // dd($plan->planProductCos());
+
+    //         $productIds = $request->input('product_ids', []);
+
+    //         $products = Product::whereIn('id', $productIds)
+    //             ->get();
+
+    //         // dd($products);
+
+    //         // dd($products);
+
+    //         // 2. Ambil Produk terkait
+    //         // $product = Product::findOrFail($plan->product_id);
+
+    //         $start = $request->input('start_time', Carbon::now()->startOfDay());
+
+    //         $apiUrlLocal = 'http://127.0.0.1:5000/schedule';
+
+    //         $apiUrl = 'https://rest.mps.rawp.my.id/schedule';
+
+    //         $startTime = microtime(true);
+
+    //         $start_products = Product::orderBy('shipping_date')->first();
+
+    //         // Cek apakah start_product sudah ada di Schedule
+    //         $schedule = Schedule::where('product_id', $start_products->id)
+    //             ->orderBy('process_id', 'asc')
+    //             ->first();
+
+    //         if ($schedule) {
+    //             // Ambil process sebelumnya (jika ada)
+    //             $prevProcessId = $schedule->process_id - 1;
+    //             $prevSchedule = Schedule::where('product_id', $start_products->id)
+    //                 ->where('process_id', $prevProcessId)
+    //                 ->orderBy('end_time', 'desc')
+    //                 ->first();
+
+    //             if ($prevSchedule) {
+    //                 $start = Carbon::parse($prevSchedule->end_time);
+    //             } else {
+    //                 $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+    //             }
+    //         } else {
+    //             $start = Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+    //         }
+
+    //         // $products = DB::table('products')
+    //         //     ->select(
+    //         //         'id',
+    //         //         'code',
+    //         //         'name',
+    //         //         DB::raw('shipping_date as shipment_deadline'),
+    //         //         'process_details',
+    //         //         'created_at',
+    //         //         'updated_at'
+    //         //     )
+    //         //     ->get();
+
+    //         $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
+
+    //         // dd($operations);
+
+    //         $datas = [
+    //             'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
+    //             'products' => $products->map(function ($product) use ($operations) {
+    //                 $operationIds = is_array($product->process_details)
+    //                     ? $product->process_details
+    //                     : explode(',', $product->process_details);
+
+    //                 $tasks = [];
+    //                 foreach ($operationIds as $opId) {
+    //                     $opId = trim($opId);
+    //                     if ($opId && isset($operations[$opId])) {
+    //                         $duration = $operations[$opId]->duration ?? 0;
+    //                         $tasks[] = [(int) $opId, $duration];
+    //                     }
+    //                 }
+
+    //                 return [
+    //                     'id' => $product->id,
+    //                     'name' => $product->name,
+    //                     'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
+    //                     'tasks' => $tasks,
+    //                 ];
+    //             })->toArray(),
+    //         ];
+    //         // dd($datas);
+
+    //         try {
+    //             try {
+    //                 $response = Http::timeout(30)->post($apiUrlLocal, $datas);
+    //                 if (!$response->ok()) {
+    //                     // Jika gagal, coba ke API kedua
+    //                     $response = Http::timeout(30)->post($apiUrl, $datas);
+    //                 }
+    //             } catch (\Exception $ex) {
+    //                 // Jika gagal, coba ke API kedua
+    //                 $response = Http::timeout(30)->post($apiUrl, $datas);
+    //             }
+    //             $response_data = $response->object();
+    //         } catch (\Exception $e) {
+    //             DB::rollBack();
+    //             return redirect()->route('plan-simulate.index')->withErrors('Gagal menghubungi API: ' . $e->getMessage());
+    //         }
+
+    //         foreach ($response_data->tasks as $schedule) {
+    //             // dd($schedule);
+    //             $simulate = SimulateSchedule::create([
+    //                 'plan_id' => $plan->id,
+    //                 'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
+    //                 'operation_id' => $schedule->operation_id ?? null,
+    //                 'quantity' => $schedule->quantity ?? 0,
+    //                 'plan_speed' => $schedule->plan_speed ?? 0,
+    //                 'conversion_value' => $schedule->conversion_value ?? 0,
+    //                 'plan_duration' => $schedule->duration ?? 0,
+    //                 'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
+    //                 'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+    //             ]);
+
+    //             // dd($simulate);
+    //         }
+
+    //         // dd(SimulateSchedule::all());
+
+    //         $duration = round(microtime(true) - $startTime, 2);
+
+    //         // dd($duration);
+
+    //         // dd($response_data, isset($response_data->tasks));
+
+    //         if ($response_data && isset($response_data->tasks)) {
+    //             DB::commit();
+    //             return redirect()->route('plan-simulate.index')->with('success', 'Plans generated successfully. Processed in ' . $duration . ' seconds.');
+    //         }
+
+    //         DB::rollBack();
+    //         return redirect()->route('plan-simulate.index')->withErrors('Failed to generate plans.');
+    //     } catch (\Throwable $e) {
+    //         return redirect()->route('plan-simulate.index')->withErrors('Error: ' . $e->getMessage());
+    //     }
+
+    //     // return redirect()->route('plan-simulate.index')->with('success', 'Plan dan simulasi jadwal berhasil dibuat tanpa bentrok.');
+    // }
 
     // public function store(Request $request)
     // {
@@ -247,15 +558,53 @@ class PlanSimulateController extends Controller
     public function show($plan)
     {
         // dd($plan);
-        $plan = Plan::with('product')->findOrFail($plan);
+        $plan = Plan::with('product', 'co', 'planProductCos', 'planProductCos.product', 'planProductCos.co')->findOrFail($plan);
 
-        $schedules = SimulateSchedule::with(['machine', 'product', 'process', 'operation', 'operation.machine', 'operation.process'])
-            ->where('plan_id', $plan->id)
-            ->get();
+        // dd($plan);
+        // Ambil filter dari request
+        $startDate = request('start_date');
+        $endDate = request('end_date');
+        $category = request('category');
+        $machineId = request('machine_id');
+        $processId = request('process_id');
+
+        $schedulesQuery = SimulateSchedule::with([
+            'machine',
+            'product',
+            'process',
+            'operation',
+            'operation.machine',
+            'operation.process'
+        ])->where('plan_id', $plan->id);
+
+        if ($startDate) {
+            $schedulesQuery->whereDate('start_time', '>=', $startDate);
+        }
+        if ($endDate) {
+            $schedulesQuery->whereDate('end_time', '<=', $endDate);
+        }
+        if ($machineId) {
+            $schedulesQuery->whereHas('operation', function ($query) use ($machineId) {
+                $query->where('machine_id', $machineId);
+            });
+        }
+        if ($processId) {
+            $schedulesQuery->whereHas('operation', function ($query) use ($processId) {
+                $query->where('process_id', $processId);
+            });
+        }
+
+        $schedules = $schedulesQuery->orderBy('start_time', 'asc')->get();
 
         // dd($schedules);
 
-        return view('plan-simulate.show', compact('plan', 'schedules'));
+        // Untuk modal filter, ambil semua mesin dan proses
+        $machines = \App\Models\Machine::all();
+        $processes = \App\Models\Process::all();
+
+        // dd($schedules);
+
+        return view('plan-simulate.show', compact('plan', 'schedules', 'machines', 'processes', 'startDate', 'endDate', 'category', 'machineId', 'processId'));
     }
 
     public function destroy($plan)
@@ -271,4 +620,47 @@ class PlanSimulateController extends Controller
         return redirect()->route('plan-simulate.index')->with('success', 'Plan dan semua jadwal simulasi berhasil dihapus.');
     }
 
+    public function updateDuration(Request $request, $plan)
+    {
+        $plan = Plan::findOrFail($plan);
+
+        $request->validate([
+            'duration' => 'required|integer|min:0',
+        ]);
+
+
+
+        // Update durasi plan
+        $plan->update(['duration' => $request->input('duration')]);
+
+        return redirect()->route('plan-simulate.index')->with('success', 'Plan duration updated successfully.');
+    }
+
+    public function applyToSchedule($plan)
+    {
+        $plan = Plan::findOrFail($plan);
+
+        // Ambil semua jadwal simulasi terkait plan ini
+        $schedules = SimulateSchedule::where('plan_id', $plan->id)->get();
+
+        foreach ($schedules as $schedule) {
+            Schedule::create([
+                'product_id' => $schedule->product_id,
+                'co_id' => $schedule->co_id,
+                'operation_id' => $schedule->operation_id,
+                'process_id' => $schedule->process_id,
+                'machine_id' => $schedule->machine_id,
+                'start_time' => $schedule->start_time,
+                'end_time' => $schedule->end_time,
+                'quantity' => $schedule->quantity,
+                'plan_speed' => $schedule->plan_speed,
+                'conversion_value' => $schedule->conversion_value,
+                'plan_duration' => $schedule->plan_duration,
+            ]);
+        }
+
+        $plan->update(['is_applied' => true]);
+
+        return redirect()->route('schedules.gantt')->with('success', 'Schedules applied from plan successfully.');
+    }
 }

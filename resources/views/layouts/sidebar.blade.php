@@ -26,11 +26,26 @@
                         <i class="bi bi-plus-circle me-2"></i> Plan Simulate
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('reports.index') }}">
+                        <i class="bi bi-file-earmark-text me-2"></i> Reports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('co.index') }}">
+                        <i class="bi bi-clipboard me-2"></i> CO Management
+                    </a>
+                </li>
                 <hr>
                 <span class="text-secondary ms-3 mb-1">Settings</span>
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{{ route('operations.index') }}">
                         <i class="bi bi-gear me-2"></i> Operations
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('operations.index') }}">
+                        <i class="bi bi-tools me-2"></i> Settings Machines
                     </a>
                 </li>
                 <hr>

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
 use App\Models\Machine;
+use App\Models\Plan;
 use App\Models\Process;
 use App\Models\Product;
 use App\Models\Schedule;
@@ -161,6 +162,106 @@ class DatabaseSeeder extends Seeder
         foreach ($operations as $operation) {
             \App\Models\Operations::create($operation);
         }
+
+        $products = [
+            [
+                'code' => 'P001',
+                'name' => 'Bungkus Roti Rasa Coklat',
+                // 'shipping_date' => now()->addHours(2),
+            ],
+            [
+                'code' => 'P002',
+                'name' => 'WK KALENDER DUDUK 2017 COVER BALIK KERTAS',
+                // 'shipping_date' => now()->addHours(4),
+            ],
+            [
+                'code' => 'P003',
+                'name' => 'WK KALENDER DUDUK 2017 COVER DEPAN KERTAS',
+                // 'shipping_date' => now()->addHours(6),
+            ],
+            [
+                'code' => 'P004',
+                'name' => 'Kardus Kado 2017',
+                // 'shipping_date' => now()->addHours(8),
+            ],
+            [
+                'code' => 'P005',
+                'name' => 'Tutup Kardus Kado 2017',
+                // 'shipping_date' => now()->addHours(10),
+            ],
+            [
+                'code' => 'P006',
+                'name' => 'Body Kardus Kado 2017',
+                // 'shipping_date' => now()->addHours(12),
+            ]
+        ];
+
+        foreach ($products as $product) {
+            Product::create($product);
+        }
+
+        $product_components = [
+            [
+                'parent_product_id' => 4,
+                'component_product_id' => 5,
+                'quantity' => 1.00,
+                'unit' => 'pcs',
+            ],
+            [
+                'parent_product_id' => 4,
+                'component_product_id' => 6,
+                'quantity' => 1.00,
+                'unit' => 'pcs',
+            ],
+        ];
+
+        foreach ($product_components as $pc) {
+            \App\Models\ProductComponent::create($pc);
+        }
+
+        $cos = [
+            [
+                'product_id' => 1,
+                'code' => 'CO001',
+                'name' => 'CO for Product 1',
+                'description' => 'CO description for Product 1',
+                'co_user' => 'user1',
+                'shipping_date' => now()->addDays(1),
+                'process_details' => 'Process details for Product 1',
+                'is_completed' => false,
+                'status' => 'pending',
+                'remarks' => null,
+                'draft' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => 4,
+                'code' => 'CO002',
+                'name' => 'CO for Product 4',
+                'description' => 'CO description for Product 4',
+                'co_user' => 'user2',
+                'shipping_date' => now()->addDays(2),
+                'process_details' => 'Process details for Product 4',
+                'is_completed' => false,
+                'status' => 'pending',
+                'remarks' => null,
+                'draft' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        ];
+
+        foreach ($cos as $co) {
+            \App\Models\Co::create($co);
+        }
+        
+        Plan::create([
+            'name' => 'Plan for Product 1',
+            'description' => 'Plan description for Product 1',
+            'is_applied' => false,
+            'start_date' => now(),
+        ]);
 
         // $products = [];
         // for ($i = 1; $i <= 100; $i++) {

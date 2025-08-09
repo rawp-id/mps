@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('code')->unique()->nullable();
             $table->string('name')->nullable();
             $table->bigInteger('duration')->default(0);
+            $table->boolean('is_setting')->default(false);
             $table->timestamps();
         });
     }
