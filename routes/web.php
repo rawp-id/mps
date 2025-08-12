@@ -30,6 +30,7 @@ Route::get('/plan-simulate/create', [PlanSimulateController::class, 'create'])->
 Route::post('/plan-simulate', [PlanSimulateController::class, 'store'])->name('plan-simulate.store');
 Route::get('/plan-simulate/{plan}', [PlanSimulateController::class, 'show'])->name('plan-simulate.show');
 Route::delete('/plan-simulate/{plan}', [PlanSimulateController::class, 'destroy'])->name('plan-simulate.destroy');
+Route::get('/plan-simulate/{plan}/edit', [PlanSimulateController::class, 'edit'])->name('plan-simulate.edit');
 
 // Import routes
 Route::get('products/import', [ProductController::class, 'importForm'])->name('products.import');
