@@ -7,23 +7,134 @@
         <h1>Plan: {{ $plan->name }}</h1>
         <div class="d-flex">
             <a href="{{ route('plan-simulate.edit', $plan->id) }}" class="btn btn-warning me-2">Edit</a>
-            <a href="" class="btn btn-info me-2">Generate</a>
+            <a href="{{ route('plan-simulate.generate', $plan->id) }}" class="btn btn-info me-2">Generate</a>
             <a href="{{ route('apply.schedule', $plan->id) }}" class="btn btn-primary me-2">Apply To Schedule</a>
             <a href="{{ route('plan-simulate.index') }}" class="btn btn-secondary">Back to List</a>
         </div>
     </div>
 
     {{-- <p><strong>Slug:</strong> {{ $plan->slug }}</p> --}}
-    <p><strong>Product:</strong></p>
-    <ul>
-        @empty($plan->planProductCos)
-            <li>No products associated with this plan.</li>
-        @else
-            @foreach ($plan->planProductCos as $planProductCo)
-                <li>{{ $planProductCo->co->name }} - {{ $planProductCo->co->product->name }}</li>
-            @endforeach
-        @endif
-    </ul>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <strong>CO-Products:</strong>
+        <!-- Button trigger modal -->
+        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCoModal">
+            Add
+        </button>
+
+        <!-- Modal -->
+        <div class="modal fade" id="addCoModal" tabindex="-1" aria-labelledby="addCoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addCoModalLabel">Select CO-Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if ($cos->isEmpty())
+                            <div class="alert alert-info">No CO-Products available.</div>
+                        @else
+                            <form id="addCoForm" method="POST"
+                                action="{{ route('plan-simulate.addCoToPlan', $plan->id) }}">
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="co_id" class="form-label">CO-Product</label>
+                                    <input type="text" class="form-control mb-2" id="coSearch"
+                                        placeholder="Search CO/Product...">
+                                    <table class="table table-bordered table-sm align-middle" id="coTable">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:40px"></th>
+                                                <th>Product</th>
+                                                <th>Description</th>
+                                                <th>CO</th>
+                                                <th>Shipping Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($cos as $co)
+                                                <tr class="{{ collect(old('co_ids'))->contains($co->id) ? 'table-success' : '' }}"
+                                                    data-product="{{ strtolower($co->product->name) }}">
+                                                    <td>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="co_ids[]"
+                                                                value="{{ $co->id }}" id="co_{{ $co->id }}"
+                                                                {{ collect(old('co_ids'))->contains($co->id) ? 'checked' : '' }}
+                                                                onchange="this.closest('tr').classList.toggle('table-success', this.checked)">
+                                                            <label class="form-check-label" for="co_{{ $co->id }}">
+                                                                {{ $co->code }}
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                    <td>{{ $co->product->name }}</td>
+                                                    <td>{{ $co->description }}</td>
+                                                    <td>{{ $co->co_user }}</td>
+                                                    <td>{{ $co->shipping_date }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                    <script>
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            const searchInput = document.getElementById('coSearch');
+                                            const productFilter = document.getElementById('productFilter');
+                                            const table = document.getElementById('coTable');
+
+                                            function filterTable() {
+                                                const search = searchInput.value.toLowerCase();
+                                                const product = productFilter.value;
+                                                Array.from(table.tBodies[0].rows).forEach(row => {
+                                                    const rowProduct = row.getAttribute('data-product');
+                                                    const text = row.innerText.toLowerCase();
+                                                    const matchProduct = !product || rowProduct === product;
+                                                    const matchText = !search || text.includes(search);
+                                                    row.style.display = (matchProduct && matchText) ? '' : 'none';
+                                                });
+                                            }
+                                            searchInput.addEventListener('input', filterTable);
+                                            productFilter.addEventListener('change', filterTable);
+                                        });
+                                    </script>
+                                </div>
+                                <!-- Add more fields if needed -->
+                                <button type="submit" class="btn btn-primary">Add</button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @if ($plan->planProductCos->isEmpty())
+        <div class="alert alert-info">No products associated with this plan.</div>
+    @else
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>CO Name</th>
+                    <th>Product Name</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($plan->planProductCos as $planProductCo)
+                    <tr>
+                        <td>{{ $planProductCo->co->name }}</td>
+                        <td>{{ $planProductCo->co->product->name }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <form action="{{ route('plan-simulate.destroyCoFromPlan', $planProductCo->id) }}"
+                                    method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
     <p><strong>Description:</strong> {{ $plan->description ?? '-' }}</p>
 

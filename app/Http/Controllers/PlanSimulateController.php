@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Models\Product;
 use App\Models\Schedule;
 use App\Models\Operations;
+use App\Models\PlanProductCo;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\SimulateSchedule;
@@ -18,12 +19,15 @@ class PlanSimulateController extends Controller
 {
     public static function generateSimulationSchedule($products, $start)
     {
-        $products = Product::whereIn('id', $products)->get();
+        $products = Product::whereIn('id', $products)->orderBy('shipping_date')->get();
+        // dd($products);
         $urlLocal = 'http://localhost:5000/schedule';
         $url = 'https://rest.mps.rawp.my.id/schedule';
-        $start_products = $products->orderBy('shipping_date')->first();
+        $start_products = $products->first();
+        // dd($start_products);
         $start = $start ?? Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
         $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
+        // dd($operations);
         $datas = [
             'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
             'products' => $products->map(function ($product) use ($operations) {
@@ -48,9 +52,11 @@ class PlanSimulateController extends Controller
                 ];
             })->toArray(),
         ];
+        // dd($datas);
         try {
             try {
                 $response = Http::timeout(30)->post($urlLocal, $datas);
+                // dd($response->object());
                 if (!$response->ok()) {
                     // Jika gagal, coba ke API kedua
                     $response = Http::timeout(30)->post($url, $datas);
@@ -560,6 +566,14 @@ class PlanSimulateController extends Controller
         // dd($plan);
         $plan = Plan::with('product', 'co', 'planProductCos', 'planProductCos.product', 'planProductCos.co')->findOrFail($plan);
 
+        // dd($plan->planProductCos);
+
+        $products = Product::whereNotIn('id', $plan->planProductCos->pluck('product_id'))->get();
+        // dd($products);
+
+        $cos = Co::whereNotIn('id', $plan->planProductCos->pluck('co_id'))->get();
+        // dd($cos);
+
         // dd($plan);
         // Ambil filter dari request
         $startDate = request('start_date');
@@ -604,7 +618,7 @@ class PlanSimulateController extends Controller
 
         // dd($schedules);
 
-        return view('plan-simulate.show', compact('plan', 'schedules', 'machines', 'processes', 'startDate', 'endDate', 'category', 'machineId', 'processId'));
+        return view('plan-simulate.show', compact('plan', 'schedules', 'machines', 'processes', 'startDate', 'endDate', 'category', 'machineId', 'processId', 'products', 'cos'));
     }
 
     public function destroy($plan)
@@ -662,5 +676,74 @@ class PlanSimulateController extends Controller
         $plan->update(['is_applied' => true]);
 
         return redirect()->route('schedules.gantt')->with('success', 'Schedules applied from plan successfully.');
+    }
+
+    public function addCoToPlan(Request $request, $plan)
+    {
+        // dd($request->all());
+
+        $plan = Plan::findOrFail($plan);
+
+        $request->validate([
+            'co_ids' => 'required|array',
+            'co_ids.*' => 'exists:cos,id',
+        ]);
+
+        // Tambahkan CO ke plan
+        foreach ($request->input('co_ids', []) as $coId) {
+            $plan->planProductCos()->create([
+                'plan_id' => $plan->id,
+                'product_id' => null, // Atau bisa diisi dengan ID produk jika ada
+                'co_id' => $coId,
+            ]);
+        }
+
+        return redirect()->route('plan-simulate.show', $plan->id)->with('success', 'CO added to plan successfully.');
+    }
+
+    public function destroyCoFromPlan($id)
+    {
+        $planProductCo = PlanProductCo::findOrFail($id);
+        $plan = $planProductCo->plan;
+
+        // Hapus CO dari plan
+        $planProductCo->delete();
+
+        return redirect()->route('plan-simulate.show', $plan->id)->with('success', 'CO removed from plan successfully.');
+    }
+
+    public function generatePlan($plan)
+    {
+        // dd($plan);
+        $plan = Plan::with('planProductCos', 'planProductCos.co')->findOrFail($plan);
+        // dd($plan);
+
+        $generate = $this->generateSimulationSchedule(
+            $plan->planProductCos->map(function ($ppc) {
+                return optional($ppc->co)->product_id;
+            })->filter(),
+            $plan->start_time
+        );
+
+        // dd($generate);
+
+        foreach ($generate->tasks as $schedule) {
+            // dd($schedule);
+            $simulate = SimulateSchedule::create([
+                'plan_id' => $plan->id,
+                'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
+                'operation_id' => $schedule->operation_id ?? null,
+                'quantity' => $schedule->quantity ?? 0,
+                'plan_speed' => $schedule->plan_speed ?? 0,
+                'conversion_value' => $schedule->conversion_value ?? 0,
+                'plan_duration' => $schedule->duration ?? 0,
+                'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
+                'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+            ]);
+
+            // dd($simulate);
+        }
+
+        return redirect()->route('plan-simulate.show', $plan->id)->with('success', 'Plan generated successfully.');
     }
 }

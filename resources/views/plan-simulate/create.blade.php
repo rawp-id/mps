@@ -17,7 +17,7 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div> --}}
-        <div class="mb-3">
+        {{-- <div class="mb-3">
             <label for="plan_id" class="form-label">Select Plan</label>
             <select name="plan_id" id="plan_id" class="form-select @error('plan_id') is-invalid @enderror">
                 <option value="">-- Create New Plan --</option>
@@ -30,8 +30,8 @@
             @error('plan_id')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
-        </div>
-        <div class="mb-3" id="new_plan_name_container" style="{{ old('plan_id') ? 'display:none;' : '' }}">
+        </div> --}}
+        {{-- <div class="mb-3" id="new_plan_name_container" style="{{ old('plan_id') ? 'display:none;' : '' }}">
             <label for="new_plan_name" class="form-label">Plan Name</label>
             <input type="text" name="new_plan_name" id="new_plan_name"
                 class="form-control @error('new_plan_name') is-invalid @enderror"
@@ -40,7 +40,7 @@
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
             <small class="text-muted">Isi nama plan jika membuat baru. Kosongkan untuk auto-generate.</small>
-        </div>
+        </div> --}}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const planSelect = document.getElementById('plan_id');

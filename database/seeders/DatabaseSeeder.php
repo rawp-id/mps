@@ -167,6 +167,7 @@ class DatabaseSeeder extends Seeder
             [
                 'code' => 'P001',
                 'name' => 'Bungkus Roti Rasa Coklat',
+                'process_details' => '1,2,3,4,5,6',
                 // 'shipping_date' => now()->addHours(2),
             ],
             [
@@ -182,6 +183,7 @@ class DatabaseSeeder extends Seeder
             [
                 'code' => 'P004',
                 'name' => 'Kardus Kado 2017',
+                'process_details' => '1,2,3,4,5,6',
                 // 'shipping_date' => now()->addHours(8),
             ],
             [
