@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Operations extends Model
 {
-    protected $guarded = [];
+    protected $guarded = ['id'];
 
     public function process()
     {
@@ -18,5 +18,10 @@ class Operations extends Model
     public function machine()
     {
         return $this->belongsTo(Machine::class);
+    }
+
+    public function processProducts()
+    {
+        return $this->hasMany(ProcessProduct::class);
     }
 }

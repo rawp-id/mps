@@ -26,4 +26,14 @@ class Product extends Model
     {
         return $this->belongsTo(Co::class);
     }
+
+    public function componentProduct()
+    {
+        return $this->hasMany(ComponentProduct::class);
+    }
+
+    public function processProducts()
+    {
+        return $this->hasMany(ProcessProduct::class);
+    }
 }
