@@ -281,7 +281,7 @@ class ProductController extends Controller
     {
         $operations = Operations::with(['process', 'machine'])->where('is_setting', false)->get();
         $settings = Operations::with(['process', 'machine'])->where('is_setting', true)->get();
-        dd($operations, $settings);
+        // dd($operations, $settings);
         return view('products.process', compact('operations', 'settings'));
     }
 
