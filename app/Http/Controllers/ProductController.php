@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ComponentProduct;
 use Carbon\Carbon;
 use App\Models\Plan;
 use App\Models\Machine;
@@ -45,9 +46,31 @@ class ProductController extends Controller
             'name' => 'required',
             'shipping_date' => 'nullable|date',
             'process_details' => 'nullable|string',
+            'main_components' => 'required|array',
+            'main_components.*.name' => 'required|string|max:255',
+            'main_components.*.quantity' => 'required|numeric|min:0',
+            'main_components.*.unit' => 'required|string|in:pcs,kg,liter,meter,other',
+            'main_components.*.unit_custom' => 'nullable|string|required_if:main_components.*.unit,other',
         ]);
 
-        Product::create($validated);
+        $product = Product::create($validated);
+
+        foreach ($validated['main_components'] as $component) {
+            if ($product) {
+                $letters = substr(str_shuffle("ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 3);
+
+                $numbers = rand(1000, 9999);
+                $code = $letters . '-' . $numbers;
+
+                ComponentProduct::create([
+                    'product_id' => $product->id,
+                    'code' => $code,
+                    'name' => $component['name'],
+                    'quantity' => $component['quantity'],
+                    'unit' => $component['unit_custom'] ?? $component['unit']
+                ]);
+            }
+        }
 
         return redirect()->route('products.index')->with('success', 'Product created successfully.');
     }
