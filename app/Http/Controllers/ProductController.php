@@ -254,6 +254,14 @@ class ProductController extends Controller
         }
     }
 
+    public function process()
+    {
+        $operations = Operations::with(['process', 'machine'])->where('is_setting', false)->get();
+        $settings = Operations::with(['process', 'machine'])->where('is_setting', true)->get();
+        dd($operations, $settings);
+        return view('products.process', compact('operations', 'settings'));
+    }
+
     // public function generatePlans(Request $request)
     // {
     //     $startTime = microtime(true);
