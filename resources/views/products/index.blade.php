@@ -42,6 +42,7 @@
                 <td>{{ $product->name }}</td>
                 <td>{{ $product->shipping_date ?? '-' }}</td>
                 <td class="d-flex">
+                    <a href="{{ route('products.process', $product) }}" class="btn btn-secondary btn-sm me-1">Process</a>
                     <a href="{{ route('products.show', $product) }}" class="btn btn-warning btn-sm me-1">Detail</a>
                     <a href="{{ route('products.edit', $product) }}" class="btn btn-info btn-sm me-1">Edit</a>
                     <form action="{{ route('products.destroy', $product) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this product?')">

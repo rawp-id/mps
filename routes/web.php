@@ -9,7 +9,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/products/process', [ProductController::class, 'process'])->name('products.process');
 
 // Route::get('schedules/{schedule}/delay', [ScheduleController::class, 'addDelay'])->name('schedules.delay');
 Route::post('schedules/{schedule}/delay', [ScheduleController::class, 'addDelay'])->name('schedules.delay');
@@ -41,6 +40,8 @@ Route::get('/plan-simulate/{plan}/generate', [PlanSimulateController::class, 'ge
 Route::get('products/import', [ProductController::class, 'importForm'])->name('products.import');
 Route::post('products/import-preview', [ProductController::class, 'importPreview'])->name('products.import.preview');
 Route::post('products/import-store', [ProductController::class, 'importStore'])->name('products.import.store');
+Route::get('/products/process/{id}', [ProductController::class, 'process'])->name('products.process');
+Route::post('/products/process/{id}', [ProductController::class, 'inputProcess'])->name('products.process.input');
 
 route::get('reset', function () {
     \App\Models\Schedule::truncate();

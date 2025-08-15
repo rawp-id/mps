@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ComponentProduct;
+use App\Models\ProcessProduct;
 use Carbon\Carbon;
 use App\Models\Plan;
 use App\Models\Machine;
@@ -53,7 +54,12 @@ class ProductController extends Controller
             'main_components.*.unit_custom' => 'nullable|string|required_if:main_components.*.unit,other',
         ]);
 
-        $product = Product::create($validated);
+        $product = Product::create([
+            'code' => $validated['code'],
+            'name' => $validated['name'],
+            'shipping_date' => $validated['shipping_date'],
+            'process_details' => $validated['process_details']
+        ]);
 
         foreach ($validated['main_components'] as $component) {
             if ($product) {
@@ -277,12 +283,34 @@ class ProductController extends Controller
         }
     }
 
-    public function process()
+    public function process($id)
     {
+        $product = Product::findOrFail($id);
+
         $operations = Operations::with(['process', 'machine'])->where('is_setting', false)->get();
         $settings = Operations::with(['process', 'machine'])->where('is_setting', true)->get();
-        // dd($operations, $settings);
-        return view('products.process', compact('operations', 'settings'));
+
+        return view('products.process', compact('operations', 'settings', 'product'));
+    }
+
+    public function inputProcess(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'steps' => 'required|array',
+            'steps.*.type' => 'required|string|in:operation,setting',
+            'steps.*.operation_id' => 'nullable|integer',
+            'steps.*.setting_id' => 'nullable|integer',
+        ]);
+
+        foreach ($validated['steps'] as $step) {
+            ProcessProduct::create([
+                'product_id' => $id,
+                'type' => $step['type'],
+                'operation_id' => $step['operation_id'] ?? $step['setting_id'],
+            ]);
+        }
+
+        return redirect()->route('products.index')->with('success', 'Process steps saved successfully.');
     }
 
     // public function generatePlans(Request $request)

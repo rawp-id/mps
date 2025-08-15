@@ -6,12 +6,11 @@
             <button type="button" class="btn btn-primary mb-3" id="add-step">Add Step</button>
         </div>
 
-        <form method="POST" action="">
+        <form method="POST" action="{{ route('products.process.input', $product->id) }}">
             @csrf
 
             <div id="steps-container"></div>
 
-            <button type="button" class="btn btn-primary mb-3" id="add-step">Add Step</button>
             <button type="submit" class="btn btn-success">Save Process</button>
         </form>
 
@@ -20,8 +19,6 @@
             <div class="card mb-2 process-step" data-index="{index}">
                 <div class="card-header">
                     Step <span class="step-number">{stepNumber}</span>:
-                    <input type="text" name="steps[{index}][name]" class="form-control d-inline-block w-auto"
-                        style="width: 200px;" />
                     <button type="button" class="btn btn-danger btn-sm float-end remove-step">Remove</button>
                 </div>
                 <div class="card-body">
