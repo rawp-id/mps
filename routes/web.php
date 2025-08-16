@@ -42,6 +42,7 @@ Route::post('products/import-preview', [ProductController::class, 'importPreview
 Route::post('products/import-store', [ProductController::class, 'importStore'])->name('products.import.store');
 Route::get('/products/process/{id}', [ProductController::class, 'process'])->name('products.process');
 Route::post('/products/process/{id}', [ProductController::class, 'inputProcess'])->name('products.process.input');
+Route::delete('/products/process/{process_id}', [ProductController::class, 'deleteProcess'])->name('products.process.delete');
 
 route::get('reset', function () {
     \App\Models\Schedule::truncate();

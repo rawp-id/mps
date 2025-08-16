@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProductController extends Controller
@@ -285,12 +286,14 @@ class ProductController extends Controller
 
     public function process($id)
     {
-        $product = Product::findOrFail($id);
+        $product_id = $id;
 
         $operations = Operations::with(['process', 'machine'])->where('is_setting', false)->get();
         $settings = Operations::with(['process', 'machine'])->where('is_setting', true)->get();
 
-        return view('products.process', compact('operations', 'settings', 'product'));
+        $processProduct = ProcessProduct::where('product_id', $product_id)->get();
+
+        return view('products.process', compact('operations', 'settings', 'product_id', 'processProduct'));
     }
 
     public function inputProcess(Request $request, $id)
@@ -303,14 +306,34 @@ class ProductController extends Controller
         ]);
 
         foreach ($validated['steps'] as $step) {
-            ProcessProduct::create([
-                'product_id' => $id,
-                'type' => $step['type'],
-                'operation_id' => $step['operation_id'] ?? $step['setting_id'],
-            ]);
+            ProcessProduct::updateOrCreate(
+                [
+                    'product_id' => $id,
+                    'type' => $step['type'],
+                    'operation_id' => $step['operation_id'] ?? $step['setting_id'],
+                ],
+                [
+                    'product_id' => $id,
+                    'type' => $step['type'],
+                    'operation_id' => $step['operation_id'] ?? $step['setting_id'],
+                ]
+            );
         }
 
         return redirect()->route('products.index')->with('success', 'Process steps saved successfully.');
+    }
+
+    public function deleteProcess($process_id)
+    {
+        $process = ProcessProduct::find($process_id);
+
+        if ($process) {
+            $process->delete();
+
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false], 404);
     }
 
     // public function generatePlans(Request $request)

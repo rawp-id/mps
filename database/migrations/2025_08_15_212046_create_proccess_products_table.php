@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->foreignId('component_product_id')->nullable()->constrained('component_products')->onDelete('cascade');
             $table->foreignId('operation_id')->constrained('operations')->onDelete('cascade');
+            $table->enum('type', ['operation', 'setting']);
             $table->text('notes')->nullable();
             $table->timestamps();
         });
