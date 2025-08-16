@@ -291,8 +291,6 @@ class ProductController extends Controller
         $product = Product::findOrFail($product_id);
         $componentProducts = ComponentProduct::where('product_id', $product_id)->get();
 
-        // dd($componentProducts);
-
         $operations = Operations::with(['process', 'machine'])->where('is_setting', false)->get();
         $settings = Operations::with(['process', 'machine'])->where('is_setting', true)->get();
 
@@ -301,7 +299,7 @@ class ProductController extends Controller
         return view('products.process', compact('operations', 'settings', 'product_id', 'processProduct', 'componentProducts', 'product'));
     }
 
-    public function inputProcess(Request $request, $id)
+    public function inputProcessProduct(Request $request, $id)
     {
         $validated = $request->validate([
             'steps' => 'required|array',
@@ -323,6 +321,39 @@ class ProductController extends Controller
                     'operation_id' => $step['operation_id'] ?? $step['setting_id'],
                 ]
             );
+        }
+
+        return redirect()->route('products.index')->with('success', 'Process steps saved successfully.');
+    }
+
+    public function inputProcessComponentProduct(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'steps' => 'required|array',
+            'steps.*' => 'array',
+            'steps.*.*.type' => 'required|string|in:operation,setting',
+            'steps.*.*.operation_id' => 'nullable|integer',
+            'steps.*.*.setting_id' => 'nullable|integer',
+            'steps.*.*.component_product_id' => 'required|integer|exists:component_products,id',
+        ]);
+
+        foreach ($validated['steps'] as $step) {
+            foreach ($step as $subStep) {
+                ProcessProduct::updateOrCreate(
+                    [
+                        'product_id' => $id,
+                        'component_product_id' => $subStep['component_product_id'],
+                        'type' => $subStep['type'],
+                        'operation_id' => $subStep['operation_id'] ?? $subStep['setting_id'],
+                    ],
+                    [
+                        'product_id' => $id,
+                        'component_product_id' => $subStep['component_product_id'],
+                        'type' => $subStep['type'],
+                        'operation_id' => $subStep['operation_id'] ?? $subStep['setting_id'],
+                    ]
+                );
+            }
         }
 
         return redirect()->route('products.index')->with('success', 'Process steps saved successfully.');

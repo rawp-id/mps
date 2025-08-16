@@ -41,7 +41,8 @@ Route::get('products/import', [ProductController::class, 'importForm'])->name('p
 Route::post('products/import-preview', [ProductController::class, 'importPreview'])->name('products.import.preview');
 Route::post('products/import-store', [ProductController::class, 'importStore'])->name('products.import.store');
 Route::get('/products/process/{id}', [ProductController::class, 'process'])->name('products.process');
-Route::post('/products/process/{id}', [ProductController::class, 'inputProcess'])->name('products.process.input');
+Route::post('/products/process/{id}', [ProductController::class, 'inputProcessProduct'])->name('products.process.input');
+Route::post('/products/process-component/{id}', [ProductController::class, 'inputProcessComponentProduct'])->name('products.processComponent.input');
 Route::delete('/products/process/{process_id}', [ProductController::class, 'deleteProcess'])->name('products.process.delete');
 
 route::get('reset', function () {

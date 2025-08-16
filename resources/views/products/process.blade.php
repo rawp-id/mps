@@ -3,63 +3,67 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1>Product Process</h1>
-            <button type="button" class="btn btn-primary mb-3" id="add-step">Add Step</button>
+            @if ($componentProducts->isEmpty())
+                <button type="button" class="btn btn-primary mb-3" id="add-step">Add Step</button>
+            @endif
         </div>
 
-        <form method="POST" action="{{ route('products.process.input', $product_id) }}">
+        <form method="POST"
+            action="{{ $componentProducts->isEmpty() ? route('products.process.input', $product_id) : route('products.processComponent.input', $product_id) }}">
             @csrf
-
-            <div id="steps-container">
-                @foreach ($processProduct as $index => $process)
-                    <div class="card mb-2 process-step" data-index="{{ $index }}" data-id="{{ $process->id }}">
-                        <div class="card-header">
-                            Step <span class="step-number">{{ $index + 1 }}</span>:
-                            <button type="button" class="btn btn-danger btn-sm float-end remove-step">Remove</button>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-2">
-                                <label for="type_{{ $index }}">Type</label>
-                                <select name="steps[{{ $index }}][type]" id="type_{{ $index }}"
-                                    class="form-control step-type">
-                                    <option value="">-- Select Type --</option>
-                                    <option value="operation" {{ $process->type == 'operation' ? 'selected' : '' }}>
-                                        Operation</option>
-                                    <option value="setting" {{ $process->type == 'setting' ? 'selected' : '' }}>Setting
-                                    </option>
-                                </select>
+            @if ($componentProducts->isEmpty())
+                <div id="steps-container">
+                    @foreach ($processProduct as $index => $process)
+                        <div class="card mb-2 process-step" data-index="{{ $index }}" data-id="{{ $process->id }}">
+                            <div class="card-header">
+                                Step <span class="step-number">{{ $index + 1 }}</span>:
+                                <button type="button" class="btn btn-danger btn-sm float-end remove-step">Remove</button>
                             </div>
-                            <div class="mb-2 operation-group"
-                                style="{{ $process->type == 'operation' ? '' : 'display:none;' }}">
-                                <label for="operation_{{ $index }}">Operation</label>
-                                <select name="steps[{{ $index }}][operation_id]" id="operation_{{ $index }}"
-                                    class="form-control">
-                                    <option value="">-- Select Operation --</option>
-                                    @foreach ($operations as $operation)
-                                        <option value="{{ $operation->id }}"
-                                            {{ $process->operation_id == $operation->id ? 'selected' : '' }}>
-                                            {{ $operation->name }} ({{ $operation->machine->name }})
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <label for="type_{{ $index }}">Type</label>
+                                    <select name="steps[{{ $index }}][type]" id="type_{{ $index }}"
+                                        class="form-control step-type">
+                                        <option value="">-- Select Type --</option>
+                                        <option value="operation" {{ $process->type == 'operation' ? 'selected' : '' }}>
+                                            Operation</option>
+                                        <option value="setting" {{ $process->type == 'setting' ? 'selected' : '' }}>Setting
                                         </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="mb-2 setting-group"
-                                style="{{ $process->type == 'setting' ? '' : 'display:none;' }}">
-                                <label for="setting_{{ $index }}">Setting</label>
-                                <select name="steps[{{ $index }}][setting_id]" id="setting_{{ $index }}"
-                                    class="form-control">
-                                    <option value="">-- Select Setting --</option>
-                                    @foreach ($settings as $setting)
-                                        <option value="{{ $setting->id }}"
-                                            {{ $process->setting_id == $setting->id ? 'selected' : '' }}>
-                                            {{ $setting->name }} ({{ $setting->machine->name }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                                    </select>
+                                </div>
+                                <div class="mb-2 operation-group"
+                                    style="{{ $process->type == 'operation' ? '' : 'display:none;' }}">
+                                    <label for="operation_{{ $index }}">Operation</label>
+                                    <select name="steps[{{ $index }}][operation_id]"
+                                        id="operation_{{ $index }}" class="form-control">
+                                        <option value="">-- Select Operation --</option>
+                                        @foreach ($operations as $operation)
+                                            <option value="{{ $operation->id }}"
+                                                {{ $process->operation_id == $operation->id ? 'selected' : '' }}>
+                                                {{ $operation->name }} ({{ $operation->machine->name }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="mb-2 setting-group"
+                                    style="{{ $process->type == 'setting' ? '' : 'display:none;' }}">
+                                    <label for="setting_{{ $index }}">Setting</label>
+                                    <select name="steps[{{ $index }}][setting_id]" id="setting_{{ $index }}"
+                                        class="form-control">
+                                        <option value="">-- Select Setting --</option>
+                                        @foreach ($settings as $setting)
+                                            <option value="{{ $setting->id }}"
+                                                {{ $process->setting_id == $setting->id ? 'selected' : '' }}>
+                                                {{ $setting->name }} ({{ $setting->machine->name }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            @endif
 
             @if (!$componentProducts->isEmpty())
                 <div class="d-flex flex-row overflow-auto mb-4">
@@ -202,42 +206,43 @@
                     let index = stepCounters[compId] || 0;
 
                     const template = `
-            <div class="card mb-2 process-step" data-index="${index}" data-id="" data-component="${compId}">
-                <div class="card-header">
-                    Step <span class="step-number">${index + 1}</span>:
-                    <button type="button" class="btn btn-danger btn-sm float-end remove-step">Remove</button>
-                </div>
-                <div class="card-body">
-                    <div class="mb-2">
-                        <label>Type</label>
-                        <select name="steps[${compId}][${index}][type]" class="form-control step-type">
-                            <option value="">-- Select Type --</option>
-                            <option value="operation">Operation</option>
-                            <option value="setting">Setting</option>
-                        </select>
+                    <div class="card mb-2 process-step" data-index="${index}" data-id="" data-component="${compId}">
+                        <div class="card-header">
+                            Step <span class="step-number">${index + 1}</span>:
+                            <button type="button" class="btn btn-danger btn-sm float-end remove-step">Remove</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <label>Type</label>
+                                <select name="steps[${compId}][${index}][type]" class="form-control step-type">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="operation">Operation</option>
+                                    <option value="setting">Setting</option>
+                                </select>
+                            </div>
+                            <div class="mb-2 operation-group" style="display:none;">
+                                <label>Operation</label>
+                                <select name="steps[${compId}][${index}][operation_id]" class="form-control">
+                                    <option value="">-- Select Operation --</option>
+                                    @foreach ($operations as $operation)
+                                        <option value="{{ $operation->id }}">{{ $operation->name }} ({{ $operation->machine->name }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="mb-2 setting-group" style="display:none;">
+                                <label>Setting</label>
+                                <select name="steps[${compId}][${index}][setting_id]" class="form-control">
+                                    <option value="">-- Select Setting --</option>
+                                    @foreach ($settings as $setting)
+                                        <option value="{{ $setting->id }}">{{ $setting->name }} ({{ $setting->machine->name }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <!-- Hidden input for component_product_id -->
+                            <input type="hidden" name="steps[${compId}][${index}][component_product_id]" value="${compId}">
+                        </div>
                     </div>
-                    <div class="mb-2 operation-group" style="display:none;">
-                        <label>Operation</label>
-                        <select name="steps[${compId}][${index}][operation_id]" class="form-control">
-                            <option value="">-- Select Operation --</option>
-                            @foreach ($operations as $operation)
-                                <option value="{{ $operation->id }}">{{ $operation->name }} ({{ $operation->machine->name }})</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-2 setting-group" style="display:none;">
-                        <label>Setting</label>
-                        <select name="steps[${compId}][${index}][setting_id]" class="form-control">
-                            <option value="">-- Select Setting --</option>
-                            @foreach ($settings as $setting)
-                                <option value="{{ $setting->id }}">{{ $setting->name }} ({{ $setting->machine->name }})</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-            </div>
-        `;
-
+                `;
                     document.getElementById(`steps-container-${compId}`).insertAdjacentHTML('beforeend',
                         template);
                     stepCounters[compId]++;
@@ -277,6 +282,7 @@
                 if (e.target.classList.contains('remove-step')) {
                     const stepCard = e.target.closest('.process-step');
                     const processId = stepCard ? stepCard.getAttribute('data-id') : null;
+                    console.log(processId);
 
                     if (processId) {
                         fetch(`/products/process/${processId}`, {
