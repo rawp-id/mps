@@ -288,12 +288,17 @@ class ProductController extends Controller
     {
         $product_id = $id;
 
+        $product = Product::findOrFail($product_id);
+        $componentProducts = ComponentProduct::where('product_id', $product_id)->get();
+
+        // dd($componentProducts);
+
         $operations = Operations::with(['process', 'machine'])->where('is_setting', false)->get();
         $settings = Operations::with(['process', 'machine'])->where('is_setting', true)->get();
 
         $processProduct = ProcessProduct::where('product_id', $product_id)->get();
 
-        return view('products.process', compact('operations', 'settings', 'product_id', 'processProduct'));
+        return view('products.process', compact('operations', 'settings', 'product_id', 'processProduct', 'componentProducts', 'product'));
     }
 
     public function inputProcess(Request $request, $id)

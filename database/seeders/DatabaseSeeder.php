@@ -221,6 +221,33 @@ class DatabaseSeeder extends Seeder
             \App\Models\ProductComponent::create($pc);
         }
 
+        $component_products = [
+            [
+                'product_id' => 4,
+                'code' => 'CP001',
+                'name' => 'Kardus Kado 2017 - Tutup',
+            ],
+            [
+                'product_id' => 4,
+                'code' => 'CP002',
+                'name' => 'Kardus Kado 2017 - Body',
+            ],
+            [
+                'product_id' => 4,
+                'code' => 'CP003',
+                'name' => 'Kardus Kado 2017 - Lateral',
+            ],
+            [
+                'product_id' => 4,
+                'code' => 'CP004',
+                'name' => 'Kardus Kado 2017 - Bottom',
+            ],
+        ];
+
+        foreach ($component_products as $component) {
+            \App\Models\ComponentProduct::create($component);
+        }
+
         $cos = [
             [
                 'product_id' => 1,
