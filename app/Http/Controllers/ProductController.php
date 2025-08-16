@@ -328,6 +328,7 @@ class ProductController extends Controller
 
     public function inputProcessComponentProduct(Request $request, $id)
     {
+        // dd($request->all());
         $validated = $request->validate([
             'steps' => 'required|array',
             'steps.*' => 'array',

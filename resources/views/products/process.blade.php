@@ -139,6 +139,9 @@
                                                         @endforeach
                                                     </select>
                                                 </div>
+                                                <input type="hidden"
+                                                    name="steps[{{ $component->id }}][{{ $index }}][component_product_id]"
+                                                    value="{{ $component->id }}">
                                             </div>
                                         </div>
                                     @endforeach
@@ -206,52 +209,53 @@
                     let index = stepCounters[compId] || 0;
 
                     const template = `
-                    <div class="card mb-2 process-step" data-index="${index}" data-id="" data-component="${compId}">
-                        <div class="card-header">
-                            Step <span class="step-number">${index + 1}</span>:
-                            <button type="button" class="btn btn-danger btn-sm float-end remove-step">Remove</button>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-2">
-                                <label>Type</label>
-                                <select name="steps[${compId}][${index}][type]" class="form-control step-type">
-                                    <option value="">-- Select Type --</option>
-                                    <option value="operation">Operation</option>
-                                    <option value="setting">Setting</option>
-                                </select>
-                            </div>
-                            <div class="mb-2 operation-group" style="display:none;">
-                                <label>Operation</label>
-                                <select name="steps[${compId}][${index}][operation_id]" class="form-control">
-                                    <option value="">-- Select Operation --</option>
-                                    @foreach ($operations as $operation)
-                                        <option value="{{ $operation->id }}">{{ $operation->name }} ({{ $operation->machine->name }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="mb-2 setting-group" style="display:none;">
-                                <label>Setting</label>
-                                <select name="steps[${compId}][${index}][setting_id]" class="form-control">
-                                    <option value="">-- Select Setting --</option>
-                                    @foreach ($settings as $setting)
-                                        <option value="{{ $setting->id }}">{{ $setting->name }} ({{ $setting->machine->name }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <!-- Hidden input for component_product_id -->
-                            <input type="hidden" name="steps[${compId}][${index}][component_product_id]" value="${compId}">
-                        </div>
-                    </div>
-                `;
+        <div class="card mb-2 process-step" data-index="${index}" data-id="" data-component="${compId}">
+            <div class="card-header">
+                Step <span class="step-number">${index + 1}</span>:
+                <button type="button" class="btn btn-danger btn-sm float-end remove-step">Remove</button>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label>Type</label>
+                    <select name="steps[${compId}][${index}][type]" class="form-control step-type">
+                        <option value="">-- Select Type --</option>
+                        <option value="operation">Operation</option>
+                        <option value="setting">Setting</option>
+                    </select>
+                </div>
+                <div class="mb-2 operation-group" style="display:none;">
+                    <label>Operation</label>
+                    <select name="steps[${compId}][${index}][operation_id]" class="form-control">
+                        <option value="">-- Select Operation --</option>
+                        @foreach ($operations as $operation)
+                            <option value="{{ $operation->id }}">{{ $operation->name }} ({{ $operation->machine->name }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-2 setting-group" style="display:none;">
+                    <label>Setting</label>
+                    <select name="steps[${compId}][${index}][setting_id]" class="form-control">
+                        <option value="">-- Select Setting --</option>
+                        @foreach ($settings as $setting)
+                            <option value="{{ $setting->id }}">{{ $setting->name }} ({{ $setting->machine->name }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <!-- Hidden input for component_product_id -->
+                <input type="hidden" name="steps[${compId}][${index}][component_product_id]" value="${compId}">
+            </div>
+        </div>
+        `;
                     document.getElementById(`steps-container-${compId}`).insertAdjacentHTML('beforeend',
                         template);
-                    stepCounters[compId]++;
+                    stepCounters[compId]++; // Increase step counter for the specific component
                 });
             });
 
             document.addEventListener('click', function(e) {
                 if (e.target.classList.contains('remove-step')) {
                     e.target.closest('.process-step').remove();
+                    renumberSteps();
                 }
             });
 
@@ -263,20 +267,34 @@
                     stepCard.querySelector('.setting-group').style.display = (type === 'setting') ? '' : 'none';
                 }
             });
+
+            function renumberSteps() {
+                const steps = document.querySelectorAll('.process-step');
+                steps.forEach((step, idx) => {
+                    step.setAttribute('data-index', idx);
+                    step.querySelector('.step-number').textContent = idx + 1;
+                });
+            }
         </script>
 
         <script>
-            let stepIndex = {{ $processProduct->count() }};
+            document.addEventListener('DOMContentLoaded', function() {
+                let stepIndex = {{ $processProduct->count() }};
 
-            document.getElementById('add-step').onclick = function() {
-                const template = document.getElementById('step-template').innerHTML
-                    .replace(/{index}/g, stepIndex)
-                    .replace(/{stepNumber}/g, stepIndex + 1)
-                    .replace(/{processId}/g, '');
+                document.addEventListener('click', function(e) {
+                    if (e.target.id === 'add-step') {
+                        let stepIndex = {{ $processProduct->count() }};
+                        const template = document.getElementById('step-template').innerHTML
+                            .replace(/{index}/g, stepIndex)
+                            .replace(/{stepNumber}/g, stepIndex + 1)
+                            .replace(/{processId}/g, '');
 
-                document.getElementById('steps-container').insertAdjacentHTML('beforeend', template);
-                stepIndex++;
-            };
+                        document.getElementById('steps-container').insertAdjacentHTML('beforeend', template);
+                        stepIndex++;
+                    }
+                });
+            });
+
 
             document.addEventListener('click', function(e) {
                 if (e.target.classList.contains('remove-step')) {
