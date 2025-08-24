@@ -36,6 +36,16 @@
                         <i class="bi bi-clipboard me-2"></i> CO Management
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('components.index') }}" class="nav-link text-white">
+                        <i class="bi bi-cpu me-2"></i> Components
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('boms.index') }}" class="nav-link text-white">
+                        <i class="bi bi-diagram-3 me-2"></i> BOMs
+                    </a>
+                </li>
                 <hr>
                 <span class="text-secondary ms-3 mb-1">Settings</span>
                 <li class="nav-item">

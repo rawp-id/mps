@@ -36,4 +36,9 @@ class Product extends Model
     {
         return $this->hasMany(ProcessProduct::class);
     }
+
+    public function boms()
+    {
+        return $this->hasMany(BOM::class, 'product_id');
+    }
 }

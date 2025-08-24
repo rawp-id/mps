@@ -69,3 +69,5 @@ Route::resource('processes', \App\Http\Controllers\ProcessController::class);
 Route::resource('operations', \App\Http\Controllers\OperationsController::class);
 Route::resource('reports', \App\Http\Controllers\ReportController::class);
 Route::resource('co', \App\Http\Controllers\CoController::class);
+Route::resource('components', \App\Http\Controllers\ComponentController::class);
+Route::resource('boms', \App\Http\Controllers\BOMController::class);
