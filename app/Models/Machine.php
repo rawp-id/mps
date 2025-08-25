@@ -20,4 +20,12 @@ class Machine extends Model
     {
         return $this->hasMany(Operations::class);
     }
+    public function overtimes()
+    {
+        return $this->hasMany(Overtime::class);
+    }
+    public function downtimes()
+    {
+        return $this->hasMany(Downtime::class);
+    }
 }

@@ -1,41 +1,48 @@
 @extends('layouts.app')
+
 @section('content')
-<div class="container mt-4">
-    <a href="{{ route('groups.create') }}" class="btn btn-primary mb-3">Create Group</a>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h3">Groups</h1>
+            <div class="d-flex gap-2">
+                <a href="{{ route('groups.create') }}" class="btn btn-primary">Create Group</a>
+            </div>
+        </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead class="thead-light">
-                <tr>
-                    <th>Name</th>
-                    <th>Processes</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($groups as $group)
-                <tr>
-                    <td>{{ $group->name }}</td>
-                    <td>
-                        @foreach($group->groupingProcesses as $gp)
-                            {{ $gp->processProduct->id }}{{ !$loop->last ? ',' : '' }}
-                        @endforeach
-                    </td>
-                    <td>
-                        <a href="{{ route('groups.edit',$group) }}" class="btn btn-sm btn-warning">Edit</a>
-                        <form action="{{ route('groups.destroy',$group) }}" method="POST" style="display:inline;">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete?')">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Processes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($groups as $group)
+                        <tr>
+                            <td>{{ $group->name }}</td>
+                            <td>
+                                @foreach($group->groupingProcesses as $gp)
+                                    {{ $gp->processProduct->id }}{{ !$loop->last ? ',' : '' }}
+                                @endforeach
+                            </td>
+                            <td>
+                                <a href="{{ route('groups.edit', $group) }}" class="btn btn-warning btn-sm">Edit</a>
+                                <form action="{{ route('groups.destroy', $group) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button onclick="return confirm('Delete?')" type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">No Groups found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 @endsection

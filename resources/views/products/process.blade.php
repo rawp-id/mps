@@ -85,7 +85,7 @@
                                         <div class="card mb-2 process-step" data-index="{{ $index }}"
                                             data-id="{{ $process->id }}" data-component="{{ $component->id }}">
                                             <div class="card-header">
-                                                Step <span class="step-number">{{ $index + 1 }}</span>:
+                                                Step <span class="step-number">{{ $loop->iteration }}</span>:
                                                 <button type="button"
                                                     class="btn btn-danger btn-sm float-end remove-step">Remove</button>
                                             </div>
