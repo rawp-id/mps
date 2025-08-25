@@ -74,3 +74,5 @@ Route::resource('shifts', \App\Http\Controllers\ShiftController::class);
 Route::resource('overtimes', \App\Http\Controllers\OvertimeController::class);
 Route::resource('downtimes', \App\Http\Controllers\DowntimeController::class);
 Route::resource('calender-days', \App\Http\Controllers\CalenderDayController::class);
+Route::resource('components', \App\Http\Controllers\ComponentController::class);
+Route::resource('boms', \App\Http\Controllers\BOMController::class);
