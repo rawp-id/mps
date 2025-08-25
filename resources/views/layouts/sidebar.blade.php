@@ -13,6 +13,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('groups.index') }}">
+                        <i class="bi bi-people me-2"></i> Groups
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link text-white" href="{{ route('schedules.index') }}">
                         <i class="bi bi-calendar me-2"></i> Schedules
                     </a>
@@ -48,13 +53,33 @@
                         <i class="bi bi-tools me-2"></i> Settings Machines
                     </a>
                 </li>
-                <hr>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('shifts.index') }}">
+                        <i class="bi bi-clock me-2"></i> Shifts
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('overtimes.index') }}">
+                        <i class="bi bi-clock-history me-2"></i> Overtimes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('downtimes.index') }}">
+                        <i class="bi bi-alarm me-2"></i> Downtimes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ route('calender-days.index') }}">
+                        <i class="bi bi-calendar me-2"></i> Calendar Days
+                    </a>
+                </li>
+                {{-- <hr>
                 <p class="text-secondary ms-3 mb-1">Update Apps</p>
                 <li class="nav-item">
                     <a class="nav-link text-white">
-                        <i class="bi bi-arrow-up-circle me-2"></i> Penambahan fitur Operation Management
+                        <i class="bi bi-arrow-up-circle me-2"></i> Penambahan
                     </a>
-                </li>
+                </li> --}}
             </ul>
         </div>
     </div>

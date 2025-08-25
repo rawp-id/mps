@@ -69,3 +69,8 @@ Route::resource('processes', \App\Http\Controllers\ProcessController::class);
 Route::resource('operations', \App\Http\Controllers\OperationsController::class);
 Route::resource('reports', \App\Http\Controllers\ReportController::class);
 Route::resource('co', \App\Http\Controllers\CoController::class);
+Route::resource('groups', \App\Http\Controllers\GroupController::class);
+Route::resource('shifts', \App\Http\Controllers\ShiftController::class);
+Route::resource('overtimes', \App\Http\Controllers\OvertimeController::class);
+Route::resource('downtimes', \App\Http\Controllers\DowntimeController::class);
+Route::resource('calender-days', \App\Http\Controllers\CalenderDayController::class);

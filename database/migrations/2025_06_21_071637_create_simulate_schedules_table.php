@@ -30,6 +30,10 @@ return new class extends Migration {
             $table->dateTime('start_time')->nullable();
             $table->dateTime('end_time')->nullable();
             $table->boolean('is_locked')->default(false);
+            $table->integer('shift_id')->nullable();
+            $table->boolean('is_overtime')->default(0);
+            $table->dateTime('adjusted_start')->nullable();
+            $table->dateTime('adjusted_end')->nullable();
             $table->timestamps();
         });
     }

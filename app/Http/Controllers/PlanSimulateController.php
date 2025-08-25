@@ -22,7 +22,7 @@ class PlanSimulateController extends Controller
         $products = Product::whereIn('id', $products)->orderBy('shipping_date')->get();
         // dd($products);
         $urlLocal = 'http://localhost:5000/schedule';
-        $url = 'https://rest.mps.rawp.my.id/schedule';
+        $url = 'http://202.58.200.244:5000/schedule';
         $start_products = $products->first();
         // dd($start_products);
         $start = $start ?? Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
