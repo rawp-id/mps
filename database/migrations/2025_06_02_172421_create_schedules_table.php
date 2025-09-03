@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
+            // $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            // $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
+            $table->foreignId('co_product_id')->nullable()->constrained('co_products')->onDelete('cascade');
             $table->foreignId('process_id')->nullable()->constrained('processes')->onDelete('cascade');
             $table->foreignId('machine_id')->nullable()->constrained('machines')->onDelete('cascade');
             $table->foreignId('operation_id')->nullable()->constrained('operations')->onDelete('cascade');

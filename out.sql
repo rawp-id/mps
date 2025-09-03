@@ -1,316 +1,80 @@
--- Migrations table
-CREATE TABLE IF NOT EXISTS migrations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    migration VARCHAR(255) NOT NULL,
-    batch INT NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO migrations (id, migration, batch) VALUES
-(97,'0001_01_01_000000_create_users_table',1),
-(98,'0001_01_01_000001_create_cache_table',1),
-(99,'0001_01_01_000002_create_jobs_table',1),
-(100,'2025_06_02_012027_create_machines_table',1),
-(101,'2025_06_02_012059_create_processes_table',1),
-(102,'2025_06_02_012060_create_operations_table',1),
-(103,'2025_06_02_012060_create_products_table',1),
-(104,'2025_06_02_152333_create_product_components_table',1),
-(105,'2025_06_02_163054_create_cos_table',1),
-(106,'2025_06_02_172421_create_schedules_table',1),
-(107,'2025_06_21_071126_create_plans_table',1),
-(108,'2025_06_21_071637_create_simulate_schedules_table',1),
-(109,'2025_06_21_194138_create_plan_product_cos_table',1),
-(110,'2025_07_22_182605_create_personal_access_tokens_table',1),
-(111,'2025_08_06_145540_create_components_table',1),
-(112,'2025_08_06_175739_create_b_o_m_s_table',1);
-
--- Users
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    email_verified_at DATETIME NULL,
-    password VARCHAR(255) NOT NULL,
-    remember_token VARCHAR(100) NULL,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Password reset tokens
-CREATE TABLE IF NOT EXISTS password_reset_tokens (
-    email VARCHAR(255) PRIMARY KEY,
-    token VARCHAR(255) NOT NULL,
-    created_at DATETIME NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Sessions
-CREATE TABLE IF NOT EXISTS sessions (
-    id VARCHAR(255) PRIMARY KEY,
-    user_id INT NULL,
-    ip_address VARCHAR(45) NULL,
-    user_agent TEXT NULL,
-    payload TEXT NOT NULL,
-    last_activity INT NOT NULL,
-    INDEX sessions_user_id_index (user_id),
-    INDEX sessions_last_activity_index (last_activity)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Cache
-CREATE TABLE IF NOT EXISTS cache (
-    `key` VARCHAR(255) PRIMARY KEY,
-    value TEXT NOT NULL,
-    expiration INT NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS cache_locks (
-    `key` VARCHAR(255) PRIMARY KEY,
-    owner VARCHAR(255) NOT NULL,
-    expiration INT NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Jobs
-CREATE TABLE IF NOT EXISTS jobs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    queue VARCHAR(255) NOT NULL,
-    payload TEXT NOT NULL,
-    attempts INT NOT NULL,
-    reserved_at INT NULL,
-    available_at INT NOT NULL,
-    created_at INT NOT NULL,
-    INDEX jobs_queue_index (queue)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS job_batches (
-    id VARCHAR(255) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    total_jobs INT NOT NULL,
-    pending_jobs INT NOT NULL,
-    failed_jobs INT NOT NULL,
-    failed_job_ids TEXT NOT NULL,
-    options TEXT NULL,
-    cancelled_at INT NULL,
-    created_at INT NOT NULL,
-    finished_at INT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS failed_jobs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    uuid VARCHAR(255) NOT NULL UNIQUE,
-    connection TEXT NOT NULL,
-    queue TEXT NOT NULL,
-    payload TEXT NOT NULL,
-    exception TEXT NOT NULL,
-    failed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Machines
-CREATE TABLE IF NOT EXISTS machines (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    capacity INT NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Processes
-CREATE TABLE IF NOT EXISTS processes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(255) NOT NULL UNIQUE,
-    name VARCHAR(255) NOT NULL,
-    speed INT NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Operations
-CREATE TABLE IF NOT EXISTS operations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    process_id INT NOT NULL,
-    machine_id INT NOT NULL,
-    code VARCHAR(255) UNIQUE,
-    name VARCHAR(255) NULL,
-    duration INT NOT NULL DEFAULT 0,
-    is_setting TINYINT(1) NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (process_id) REFERENCES processes(id) ON DELETE CASCADE,
-    FOREIGN KEY (machine_id) REFERENCES machines(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Products
-CREATE TABLE IF NOT EXISTS products (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(255) NOT NULL UNIQUE,
-    name VARCHAR(255) NOT NULL,
-    shipping_date DATETIME NULL,
-    process_details VARCHAR(255) NULL,
-    is_completed TINYINT(1) NOT NULL DEFAULT 0,
-    stock INT NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Product components
-CREATE TABLE IF NOT EXISTS product_components (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    parent_product_id INT NOT NULL,
-    component_product_id INT NOT NULL,
-    quantity DECIMAL(10,2) NOT NULL DEFAULT 1,
-    unit VARCHAR(50) NOT NULL DEFAULT 'pcs',
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (parent_product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (component_product_id) REFERENCES products(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- COS
-CREATE TABLE IF NOT EXISTS cos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    code VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description VARCHAR(255) NULL,
-    co_user VARCHAR(255) NULL,
-    shipping_date DATETIME NULL,
-    process_details VARCHAR(255) NULL,
-    is_completed TINYINT(1) NOT NULL DEFAULT 0,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    remarks VARCHAR(255) NULL,
-    draft TINYINT(1) NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Schedules
-CREATE TABLE IF NOT EXISTS schedules (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    co_id INT NULL,
-    process_id INT NULL,
-    machine_id INT NULL,
-    operation_id INT NULL,
-    previous_schedule_id INT NULL,
-    process_dependency_id INT NULL,
-    is_start_process TINYINT(1) NOT NULL DEFAULT 0,
-    is_final_process TINYINT(1) NOT NULL DEFAULT 0,
-    quantity INT NOT NULL DEFAULT 0,
-    plan_speed INT NOT NULL DEFAULT 0,
-    conversion_value DECIMAL(10,2) NULL,
-    plan_duration INT NOT NULL DEFAULT 0,
-    start_time DATETIME NULL,
-    end_time DATETIME NULL,
-    is_completed TINYINT(1) NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (co_id) REFERENCES cos(id) ON DELETE CASCADE,
-    FOREIGN KEY (process_id) REFERENCES processes(id) ON DELETE CASCADE,
-    FOREIGN KEY (machine_id) REFERENCES machines(id) ON DELETE CASCADE,
-    FOREIGN KEY (operation_id) REFERENCES operations(id) ON DELETE CASCADE,
-    FOREIGN KEY (previous_schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
-    FOREIGN KEY (process_dependency_id) REFERENCES schedules(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Plans
-CREATE TABLE IF NOT EXISTS plans (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description VARCHAR(255) NULL,
-    product_id INT NULL,
-    co_id INT NULL,
-    is_applied TINYINT(1) NOT NULL DEFAULT 0,
-    start_date DATETIME NULL,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (co_id) REFERENCES cos(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Simulate schedules
-CREATE TABLE IF NOT EXISTS simulate_schedules (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    plan_id INT NOT NULL,
-    product_id INT NULL,
-    co_id INT NULL,
-    process_id INT NULL,
-    machine_id INT NULL,
-    operation_id INT NULL,
-    previous_schedule_id INT NULL,
-    process_dependency_id INT NULL,
-    is_start_process TINYINT(1) NOT NULL DEFAULT 0,
-    is_final_process TINYINT(1) NOT NULL DEFAULT 0,
-    quantity INT NOT NULL DEFAULT 0,
-    plan_speed INT NOT NULL DEFAULT 0,
-    conversion_value DECIMAL(10,2) NULL,
-    plan_duration INT NOT NULL DEFAULT 0,
-    duration INT NOT NULL DEFAULT 0,
-    start_time DATETIME NULL,
-    end_time DATETIME NULL,
-    is_locked TINYINT(1) NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (co_id) REFERENCES cos(id) ON DELETE CASCADE,
-    FOREIGN KEY (process_id) REFERENCES processes(id) ON DELETE CASCADE,
-    FOREIGN KEY (machine_id) REFERENCES machines(id) ON DELETE CASCADE,
-    FOREIGN KEY (operation_id) REFERENCES operations(id) ON DELETE CASCADE,
-    FOREIGN KEY (previous_schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
-    FOREIGN KEY (process_dependency_id) REFERENCES schedules(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Plan product COS
-CREATE TABLE IF NOT EXISTS plan_product_cos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    plan_id INT NOT NULL,
-    product_id INT NULL,
-    co_id INT NULL,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (co_id) REFERENCES cos(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Personal access tokens
-CREATE TABLE IF NOT EXISTS personal_access_tokens (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tokenable_type VARCHAR(255) NOT NULL,
-    tokenable_id INT NOT NULL,
-    name TEXT NOT NULL,
-    token VARCHAR(64) NOT NULL UNIQUE,
-    abilities TEXT NULL,
-    last_used_at DATETIME NULL,
-    expires_at DATETIME NULL,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    INDEX personal_access_tokens_tokenable_type_tokenable_id_index (tokenable_type, tokenable_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Components
-CREATE TABLE IF NOT EXISTS components (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(255) UNIQUE,
-    name VARCHAR(255) NULL,
-    description VARCHAR(255) NULL,
-    unit VARCHAR(50) NULL,
-    stock DECIMAL(10,2) NOT NULL DEFAULT 0,
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- BOMs
-CREATE TABLE IF NOT EXISTS b_o_m_s (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    component_id INT NOT NULL,
-    quantity INT NOT NULL DEFAULT 1,
-    unit VARCHAR(50) NOT NULL DEFAULT 'pcs',
-    usage_type ENUM('consumable', 'usage_based') NOT NULL DEFAULT 'consumable',
-    created_at DATETIME NULL,
-    updated_at DATETIME NULL,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE IF NOT EXISTS "migrations" ("id" integer primary key autoincrement not null, "migration" varchar not null, "batch" integer not null);
+INSERT INTO migrations VALUES(267,'2025_08_23_094745_create_proccess_groups_table',1);
+INSERT INTO migrations VALUES(351,'0001_01_01_000000_create_users_table',2);
+INSERT INTO migrations VALUES(352,'0001_01_01_000001_create_cache_table',2);
+INSERT INTO migrations VALUES(353,'0001_01_01_000002_create_jobs_table',2);
+INSERT INTO migrations VALUES(354,'2025_06_02_012027_create_machines_table',2);
+INSERT INTO migrations VALUES(355,'2025_06_02_012059_create_processes_table',2);
+INSERT INTO migrations VALUES(356,'2025_06_02_012060_create_operations_table',2);
+INSERT INTO migrations VALUES(357,'2025_06_02_012060_create_products_table',2);
+INSERT INTO migrations VALUES(358,'2025_06_02_012060_create_shifts_table',2);
+INSERT INTO migrations VALUES(359,'2025_06_02_152333_create_product_components_table',2);
+INSERT INTO migrations VALUES(360,'2025_06_02_163054_create_cos_table',2);
+INSERT INTO migrations VALUES(361,'2025_06_02_163055_create_co_products_table',2);
+INSERT INTO migrations VALUES(362,'2025_06_02_172421_create_schedules_table',2);
+INSERT INTO migrations VALUES(363,'2025_06_21_071126_create_plans_table',2);
+INSERT INTO migrations VALUES(364,'2025_06_21_071637_create_simulate_schedules_table',2);
+INSERT INTO migrations VALUES(365,'2025_06_21_194138_create_plan_product_cos_table',2);
+INSERT INTO migrations VALUES(366,'2025_07_22_182605_create_personal_access_tokens_table',2);
+INSERT INTO migrations VALUES(367,'2025_08_06_145540_create_components_table',2);
+INSERT INTO migrations VALUES(368,'2025_08_06_175739_create_b_o_m_s_table',2);
+INSERT INTO migrations VALUES(369,'2025_08_15_210005_create_component_product_table',2);
+INSERT INTO migrations VALUES(370,'2025_08_15_212046_create_proccess_products_table',2);
+INSERT INTO migrations VALUES(371,'2025_08_15_213046_create_assemblies_table',2);
+INSERT INTO migrations VALUES(372,'2025_08_15_213204_create_assembly_processes_table',2);
+INSERT INTO migrations VALUES(373,'2025_08_23_094745_create_groups_table',2);
+INSERT INTO migrations VALUES(374,'2025_08_23_094910_create_grouping_proccesses_table',2);
+INSERT INTO migrations VALUES(375,'2025_08_23_095553_create_calender_days_table',2);
+INSERT INTO migrations VALUES(376,'2025_08_23_095719_create_overtimes_table',2);
+INSERT INTO migrations VALUES(377,'2025_08_23_095744_create_downtimes_table',2);
+CREATE TABLE IF NOT EXISTS "proccess_groups" ("id" integer primary key autoincrement not null, "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "users" ("id" integer primary key autoincrement not null, "name" varchar not null, "email" varchar not null, "email_verified_at" datetime, "password" varchar not null, "remember_token" varchar, "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "password_reset_tokens" ("email" varchar not null, "token" varchar not null, "created_at" datetime, primary key ("email"));
+CREATE TABLE IF NOT EXISTS "sessions" ("id" varchar not null, "user_id" integer, "ip_address" varchar, "user_agent" text, "payload" text not null, "last_activity" integer not null, primary key ("id"));
+CREATE TABLE IF NOT EXISTS "cache" ("key" varchar not null, "value" text not null, "expiration" integer not null, primary key ("key"));
+CREATE TABLE IF NOT EXISTS "cache_locks" ("key" varchar not null, "owner" varchar not null, "expiration" integer not null, primary key ("key"));
+CREATE TABLE IF NOT EXISTS "jobs" ("id" integer primary key autoincrement not null, "queue" varchar not null, "payload" text not null, "attempts" integer not null, "reserved_at" integer, "available_at" integer not null, "created_at" integer not null);
+CREATE TABLE IF NOT EXISTS "job_batches" ("id" varchar not null, "name" varchar not null, "total_jobs" integer not null, "pending_jobs" integer not null, "failed_jobs" integer not null, "failed_job_ids" text not null, "options" text, "cancelled_at" integer, "created_at" integer not null, "finished_at" integer, primary key ("id"));
+CREATE TABLE IF NOT EXISTS "failed_jobs" ("id" integer primary key autoincrement not null, "uuid" varchar not null, "connection" text not null, "queue" text not null, "payload" text not null, "exception" text not null, "failed_at" datetime not null default CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS "machines" ("id" integer primary key autoincrement not null, "name" varchar not null, "capacity" integer not null default '0', "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "processes" ("id" integer primary key autoincrement not null, "code" varchar not null, "name" varchar not null, "speed" integer not null default '0', "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "operations" ("id" integer primary key autoincrement not null, "process_id" integer not null, "machine_id" integer not null, "code" varchar, "name" varchar, "duration" integer not null default '0', "is_setting" tinyint(1) not null default '0', "created_at" datetime, "updated_at" datetime, foreign key("process_id") references "processes"("id") on delete cascade, foreign key("machine_id") references "machines"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "products" ("id" integer primary key autoincrement not null, "code" varchar not null, "name" varchar not null, "shipping_date" datetime, "process_details" varchar, "is_completed" tinyint(1) not null default '0', "stock" integer not null default '0', "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "shifts" ("id" integer primary key autoincrement not null, "machine_id" integer not null, "name" varchar not null, "start_time" time not null, "end_time" time not null, "is_active" tinyint(1) not null, "created_at" datetime, "updated_at" datetime, foreign key("machine_id") references "machines"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "product_components" ("id" integer primary key autoincrement not null, "parent_product_id" integer not null, "component_product_id" integer not null, "quantity" numeric not null default '1', "unit" varchar not null default 'pcs', "created_at" datetime, "updated_at" datetime, foreign key("parent_product_id") references "products"("id") on delete cascade, foreign key("component_product_id") references "products"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "cos" ("id" integer primary key autoincrement not null, "code" varchar not null, "name" varchar not null, "description" varchar, "co_user" varchar, "process_details" varchar, "is_completed" tinyint(1) not null default '0', "status" varchar not null default 'pending', "remarks" varchar, "draft" tinyint(1) not null default '0', "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "co_products" ("id" integer primary key autoincrement not null, "co_id" integer not null, "product_id" integer not null, "shipment_date" date, "created_at" datetime, "updated_at" datetime, foreign key("co_id") references "cos"("id") on delete cascade, foreign key("product_id") references "products"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "schedules" ("id" integer primary key autoincrement not null, "co_product_id" integer, "process_id" integer, "machine_id" integer, "operation_id" integer, "previous_schedule_id" integer, "process_dependency_id" integer, "is_start_process" tinyint(1) not null default '0', "is_final_process" tinyint(1) not null default '0', "quantity" integer not null default '0', "plan_speed" integer not null default '0', "conversion_value" numeric, "plan_duration" integer not null default '0', "start_time" datetime, "end_time" datetime, "is_completed" tinyint(1) not null default '0', "shift_id" integer, "is_overtime" tinyint(1) not null default '0', "adjusted_start" datetime, "adjusted_end" datetime, "created_at" datetime, "updated_at" datetime, foreign key("co_product_id") references "co_products"("id") on delete cascade, foreign key("process_id") references "processes"("id") on delete cascade, foreign key("machine_id") references "machines"("id") on delete cascade, foreign key("operation_id") references "operations"("id") on delete cascade, foreign key("previous_schedule_id") references "schedules"("id") on delete cascade, foreign key("process_dependency_id") references "schedules"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "plans" ("id" integer primary key autoincrement not null, "name" varchar not null, "description" varchar, "product_id" integer, "co_id" integer, "is_applied" tinyint(1) not null default '0', "start_date" datetime, "created_at" datetime, "updated_at" datetime, foreign key("product_id") references "products"("id") on delete cascade, foreign key("co_id") references "cos"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "simulate_schedules" ("id" integer primary key autoincrement not null, "plan_id" integer not null, "co_product_id" integer, "process_id" integer, "machine_id" integer, "operation_id" integer, "previous_schedule_id" integer, "process_dependency_id" integer, "is_start_process" tinyint(1) not null default '0', "is_final_process" tinyint(1) not null default '0', "quantity" integer not null default '0', "plan_speed" integer not null default '0', "conversion_value" numeric, "plan_duration" integer not null default '0', "duration" integer not null default '0', "start_time" datetime, "end_time" datetime, "shift_id" integer, "is_overtime" tinyint(1) not null default '0', "adjusted_start" datetime, "adjusted_end" datetime, "created_at" datetime, "updated_at" datetime, foreign key("plan_id") references "plans"("id") on delete cascade, foreign key("co_product_id") references "co_products"("id") on delete cascade, foreign key("process_id") references "processes"("id") on delete cascade, foreign key("machine_id") references "machines"("id") on delete cascade, foreign key("operation_id") references "operations"("id") on delete cascade, foreign key("previous_schedule_id") references "schedules"("id") on delete cascade, foreign key("process_dependency_id") references "schedules"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "plan_product_cos" ("id" integer primary key autoincrement not null, "plan_id" integer not null, "co_product_id" integer, "shipment_date" datetime, "created_at" datetime, "updated_at" datetime, foreign key("plan_id") references "plans"("id") on delete cascade, foreign key("co_product_id") references "co_products"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "personal_access_tokens" ("id" integer primary key autoincrement not null, "tokenable_type" varchar not null, "tokenable_id" integer not null, "name" text not null, "token" varchar not null, "abilities" text, "last_used_at" datetime, "expires_at" datetime, "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "components" ("id" integer primary key autoincrement not null, "code" varchar, "name" varchar, "description" varchar, "unit" varchar, "stock" numeric not null default '0', "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "b_o_m_s" ("id" integer primary key autoincrement not null, "product_id" integer not null, "component_id" integer not null, "quantity" integer not null default '1', "unit" varchar not null default 'pcs', "usage_type" varchar check ("usage_type" in ('consumable', 'usage_based')) not null default 'consumable', "created_at" datetime, "updated_at" datetime, foreign key("product_id") references "products"("id") on delete cascade, foreign key("component_id") references "components"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "component_products" ("id" integer primary key autoincrement not null, "product_id" integer not null, "code" varchar not null, "name" varchar not null, "unit" varchar, "quantity" integer, "created_at" datetime, "updated_at" datetime, foreign key("product_id") references "products"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "process_products" ("id" integer primary key autoincrement not null, "product_id" integer not null, "component_product_id" integer, "operation_id" integer not null, "type" varchar check ("type" in ('operation', 'setting')) not null, "notes" text, "created_at" datetime, "updated_at" datetime, foreign key("product_id") references "products"("id") on delete cascade, foreign key("component_product_id") references "component_products"("id") on delete cascade, foreign key("operation_id") references "operations"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "assemblies" ("id" integer primary key autoincrement not null, "is_combined" tinyint(1) not null, "notes" text, "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "assembly_processes" ("id" integer primary key autoincrement not null, "assembly_id" integer not null, "process_product_id" integer not null, "created_at" datetime, "updated_at" datetime, foreign key("assembly_id") references "assemblies"("id") on delete cascade, foreign key("process_product_id") references "process_products"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "groups" ("id" integer primary key autoincrement not null, "name" varchar not null, "description" varchar, "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "grouping_proccesses" ("id" integer primary key autoincrement not null, "group_id" integer not null, "process_product_id" integer not null, "created_at" datetime, "updated_at" datetime, foreign key("group_id") references "groups"("id") on delete cascade, foreign key("process_product_id") references "process_products"("id") on delete cascade);
+CREATE TABLE IF NOT EXISTS "calender_days" ("id" integer primary key autoincrement not null, "date" date not null, "is_workday" tinyint(1) not null default '1', "description" varchar, "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "overtimes" ("id" integer primary key autoincrement not null, "machine_id" integer not null, "date" date not null, "start_time" time not null, "end_time" time not null, "reason" varchar, "created_at" datetime, "updated_at" datetime);
+CREATE TABLE IF NOT EXISTS "downtimes" ("id" integer primary key autoincrement not null, "machine_id" integer not null, "start_datetime" datetime not null, "end_datetime" datetime not null, "reason" varchar, "created_at" datetime, "updated_at" datetime);
+DELETE FROM sqlite_sequence;
+INSERT INTO sqlite_sequence VALUES('migrations',377);
+CREATE UNIQUE INDEX "users_email_unique" on "users" ("email");
+CREATE INDEX "sessions_user_id_index" on "sessions" ("user_id");
+CREATE INDEX "sessions_last_activity_index" on "sessions" ("last_activity");
+CREATE INDEX "jobs_queue_index" on "jobs" ("queue");
+CREATE UNIQUE INDEX "failed_jobs_uuid_unique" on "failed_jobs" ("uuid");
+CREATE UNIQUE INDEX "processes_code_unique" on "processes" ("code");
+CREATE UNIQUE INDEX "operations_code_unique" on "operations" ("code");
+CREATE UNIQUE INDEX "products_code_unique" on "products" ("code");
+CREATE INDEX "personal_access_tokens_tokenable_type_tokenable_id_index" on "personal_access_tokens" ("tokenable_type", "tokenable_id");
+CREATE UNIQUE INDEX "personal_access_tokens_token_unique" on "personal_access_tokens" ("token");
+CREATE UNIQUE INDEX "components_code_unique" on "components" ("code");
+CREATE UNIQUE INDEX "component_products_code_unique" on "component_products" ("code");
+CREATE UNIQUE INDEX "calender_days_date_unique" on "calender_days" ("date");
+COMMIT;

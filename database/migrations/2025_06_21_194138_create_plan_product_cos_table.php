@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('plan_product_cos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('plan_id')->constrained('plans')->onDelete('cascade');
-            $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
-            $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
+            // $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
+            // $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
+            $table->foreignId('co_product_id')->nullable()->constrained('co_products')->onDelete('cascade');
             $table->dateTime('shipment_date')->nullable();
             $table->timestamps();
         });

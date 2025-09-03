@@ -13,8 +13,9 @@ return new class extends Migration {
         Schema::create('simulate_schedules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('plan_id')->constrained('plans')->onDelete('cascade');
-            $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
-            $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
+            // $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
+            // $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
+            $table->foreignId('co_product_id')->nullable()->constrained('co_products')->onDelete('cascade');
             $table->foreignId('process_id')->nullable()->constrained('processes')->onDelete('cascade');
             $table->foreignId('machine_id')->nullable()->constrained('machines')->onDelete('cascade');
             $table->foreignId('operation_id')->nullable()->constrained('operations')->onDelete('cascade');
@@ -29,7 +30,7 @@ return new class extends Migration {
             $table->integer('duration')->default(0);
             $table->dateTime('start_time')->nullable();
             $table->dateTime('end_time')->nullable();
-            $table->boolean('is_locked')->default(false);
+            // $table->boolean('is_locked')->default(false);
             $table->integer('shift_id')->nullable();
             $table->boolean('is_overtime')->default(0);
             $table->dateTime('adjusted_start')->nullable();
