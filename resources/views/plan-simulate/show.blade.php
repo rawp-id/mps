@@ -116,6 +116,9 @@
                     <th>CO Name</th>
                     <th>Product Name</th>
                     <th>Locked</th>
+                    @if (!empty($plan->planProductCos->first()->shipment_date))
+                        <th>Shipment Date</th>
+                    @endif
                     <th>Action</th>
                 </tr>
             </thead>
@@ -124,6 +127,9 @@
                     <tr>
                         <td>{{ $planProductCo->co->name }}</td>
                         <td>{{ $planProductCo->co->product->name }}</td>
+                        @if (!empty($planProductCo->shipment_date))
+                            <td>{{ $planProductCo->shipment_date }}</td>
+                        @endif
                         <td>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="locked[{{ $planProductCo->id }}]"
