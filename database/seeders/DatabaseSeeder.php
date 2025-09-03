@@ -311,6 +311,78 @@ class DatabaseSeeder extends Seeder
             'start_date' => now(),
         ]);
 
+        // Dummy Shifts
+        $shifts = [
+            [
+                'machine_id' => $machineIds[0],
+                'name' => 'Shift 1',
+                'start_time' => '08:00:00',
+                'end_time' => '16:00:00',
+                'is_active' => true,
+            ],
+            [
+                'machine_id' => $machineIds[0],
+                'name' => 'Shift 2',
+                'start_time' => '16:00:00',
+                'end_time' => '00:00:00',
+                'is_active' => true,
+            ],
+            [
+                'machine_id' => $machineIds[1],
+                'name' => 'Shift 1',
+                'start_time' => '08:00:00',
+                'end_time' => '16:00:00',
+                'is_active' => true,
+            ],
+        ];
+
+        foreach ($shifts as $shift) {
+            \App\Models\Shift::create($shift);
+        }
+
+        // Dummy Calendar Days
+        $calendarDays = [
+            [
+                'date' => Carbon::create(2025, 9, 7)->toDateString(),
+                'is_workday' => true,
+                'description' => 'Regular workday',
+            ],
+            [
+                'date' => Carbon::create(2025, 9, 8)->toDateString(),
+                'is_workday' => false,
+                'description' => 'National holiday',
+            ],
+            [
+                'date' => Carbon::create(2025, 9, 9)->toDateString(),
+                'is_workday' => true,
+                'description' => 'Regular workday',
+            ],
+        ];
+
+        foreach ($calendarDays as $day) {
+            \App\Models\CalenderDay::create($day);
+        }
+
+        // Dummy Downtimes
+        $downtimes = [
+            [
+                'machine_id' => $machineIds[0],
+                'start_datetime' => Carbon::create(2025, 5, 7, 12, 0, 0),
+                'end_datetime' => Carbon::create(2025, 5, 7, 13, 0, 0),
+                'reason' => 'Routine maintenance',
+            ],
+            [
+                'machine_id' => $machineIds[1],
+                'start_datetime' => Carbon::create(2025, 5, 8, 9, 0, 0),
+                'end_datetime' => Carbon::create(2025, 5, 8, 11, 0, 0),
+                'reason' => 'Unexpected breakdown',
+            ],
+        ];
+
+        foreach ($downtimes as $dt) {
+            \App\Models\Downtime::create($dt);
+        }
+
         // $products = [];
         // for ($i = 1; $i <= 100; $i++) {
         //     $products[] = Product::create([

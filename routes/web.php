@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PlanGeneratorController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ScheduleController;
@@ -76,3 +77,4 @@ Route::resource('downtimes', \App\Http\Controllers\DowntimeController::class);
 Route::resource('calender-days', \App\Http\Controllers\CalenderDayController::class);
 Route::resource('components', \App\Http\Controllers\ComponentController::class);
 Route::resource('boms', \App\Http\Controllers\BOMController::class);
+
