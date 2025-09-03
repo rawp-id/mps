@@ -12,14 +12,24 @@
             <tr>
                 <th>Name</th>
                 <th>Description</th>
+                <th>Product</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($cos as $co)
                 <tr>
-                    <td>{{ $co->name }}</td>
-                    <td>{{ $co->description }}</td>
+                    <td>
+                        {{ $co->name }}
+                    </td>
+                    <td>
+                        {{ $co->description }}
+                    </td>
+                    <td>
+                        @foreach ($co->coProducts as $coProduct)
+                            {{ $coProduct->product->name }}<br>
+                        @endforeach
+                    </td>
                     <td>
                         <a href="{{ route('co.show', $co->id) }}" class="btn btn-info">View</a>
                         <a href="{{ route('co.edit', $co->id) }}" class="btn btn-warning">Edit</a>

@@ -10,7 +10,12 @@
         <strong>Description:</strong> {{ $co->description }}
     </div>
     <div>
-        <strong>Shipping Date:</strong> {{ $co->shipping_date }}
+        <strong>CO Products:</strong>
+        <ul>
+            @foreach ($co->coProducts as $coProduct)
+                <li>{{ $coProduct->product->name }} - Quantity: {{ $coProduct->quantity }}</li>
+            @endforeach
+        </ul>
     </div>
 
     <div class="mt-3">

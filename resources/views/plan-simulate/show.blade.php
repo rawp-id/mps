@@ -129,8 +129,8 @@
             <tbody>
                 @foreach ($plan->planProductCos as $planProductCo)
                     <tr>
-                        <td>{{ $planProductCo->co->name }}</td>
-                        <td>{{ $planProductCo->co->product->name }}</td>
+                        <td>{{ $planProductCo->coProduct->co->name }}</td>
+                        <td>{{ $planProductCo->coProduct->product->name }}</td>
                         @if (!empty($planProductCo->shipment_date))
                             <td>{{ $planProductCo->shipment_date }}</td>
                         @endif
