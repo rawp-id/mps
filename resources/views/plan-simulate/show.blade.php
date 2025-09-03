@@ -7,7 +7,10 @@
         <h1>Plan: {{ $plan->name }}</h1>
         <div class="d-flex">
             <a href="{{ route('plan-simulate.edit', $plan->id) }}" class="btn btn-warning me-2">Edit</a>
-            <a href="{{ route('plan-simulate.generate', $plan->id) }}" class="btn btn-info me-2">Generate</a>
+            <form id="generateForm" action="{{ route('plan-simulate.generate', $plan->id) }}" method="POST">
+                @csrf
+                <button type="submit" class="btn btn-info me-2">Generate</button>
+            </form>
             <a href="{{ route('apply.schedule', $plan->id) }}" class="btn btn-primary me-2">Apply To Schedule</a>
             <a href="{{ route('plan-simulate.index') }}" class="btn btn-secondary">Back to List</a>
         </div>
@@ -112,6 +115,7 @@
                 <tr>
                     <th>CO Name</th>
                     <th>Product Name</th>
+                    <th>Locked</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -121,9 +125,16 @@
                         <td>{{ $planProductCo->co->name }}</td>
                         <td>{{ $planProductCo->co->product->name }}</td>
                         <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="locked[{{ $planProductCo->id }}]"
+                                    value="1" form="generateForm">
+                            </div>
+                        </td>
+                        <td>
                             <div class="btn-group" role="group">
                                 <form action="{{ route('plan-simulate.destroyCoFromPlan', $planProductCo->id) }}"
-                                    method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                    method="POST"
+                                    onsubmit="return confirm('Are you sure you want to delete this product?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -390,10 +401,6 @@
                   <div class="mb-3">
                     <label for="editDuration" class="form-label">Duration (Default - <span id="planDurationLabel"></span> Menit)</label>
                     <input type="text" class="form-control" id="editDuration" name="duration">
-                  </div>
-                  <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="editLocked" name="locked">
-                    <label class="form-check-label" for="editLocked">Lock</label>
                   </div>
                   <input type="hidden" id="editScheduleId" name="id">
                 </form>

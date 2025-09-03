@@ -17,52 +17,89 @@ use Illuminate\Support\Facades\Http;
 
 class PlanSimulateController extends Controller
 {
-    public static function generateSimulationSchedule($products, $start)
+    public static function generateSimulationSchedule($planProductCos, $start)
     {
-        $products = Product::whereIn('id', $products)->orderBy('shipping_date')->get();
-        // dd($products);
+        // Kumpulkan mapping product_id -> (co_id, is_locked) dari planProductCos
+        $entries = collect($planProductCos)->map(function ($ppc) {
+            return [
+                'product_id' => optional($ppc->co)->product_id,
+                'co_id'      => optional($ppc->co)->id,
+                'is_locked'  => (bool) (optional($ppc->co)->is_locked ?? false),
+            ];
+        })->filter(fn($e) => !empty($e['product_id']) && !empty($e['co_id']))->values();
+
+        // Ambil produk dari DB berdasarkan product_id di entries
+        $productIds = $entries->pluck('product_id')->unique()->values()->all();
+        $products = Product::whereIn('id', $productIds)->orderBy('shipping_date')->get()->keyBy('id');
+
         $urlLocal = 'http://localhost:5000/schedule';
-        $url = 'http://202.58.200.244:5000/schedule';
-        $start_products = $products->first();
-        // dd($start_products);
-        $start = $start ?? Carbon::parse($start_products->shipping_date)->subDay()->startOfDay();
+        $url      = 'http://202.58.200.244:5000/schedule';
+
+        // Tentukan start default bila null
+        $firstProduct = $products->first();
+        $startCarbon  = $start
+            ? Carbon::parse($start)
+            : ($firstProduct ? Carbon::parse($firstProduct->shipping_date)->subDay()->startOfDay() : now());
+
         $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
-        // dd($operations);
-        $datas = [
-            'start_time' => $start instanceof Carbon ? $start->format('Y-m-d H:i') : $start,
-            'products' => $products->map(function ($product) use ($operations) {
-                $operationIds = is_array($product->process_details)
-                    ? $product->process_details
-                    : explode(',', $product->process_details);
 
-                $tasks = [];
-                foreach ($operationIds as $opId) {
-                    $opId = trim($opId);
-                    if ($opId && isset($operations[$opId])) {
-                        $duration = $operations[$opId]->duration ?? 0;
-                        $tasks[] = [(int) $opId, $duration];
-                    }
+        // Gabungkan co info per product
+        $byProduct = $entries->groupBy('product_id')->map(function ($rows) {
+            $row = collect($rows)->first();
+            return [
+                'co_id'     => (int) $row['co_id'],
+                'is_locked' => (bool) $row['is_locked'],
+            ];
+        });
+
+        // Optional body-level locked map { "co_id": 0/1 } untuk Python
+        $locksMap = $entries->mapWithKeys(fn($e) => [
+            (string) (int) $e['co_id'] => (int) $e['is_locked']
+        ])->toArray();
+
+        $productsPayload = [];
+        foreach ($byProduct as $pid => $coInfo) {
+            /** @var Product|null $p */
+            $p = $products->get($pid);
+            if (!$p) continue;
+
+            $operationIds = is_array($p->process_details)
+                ? $p->process_details
+                : explode(',', (string) $p->process_details);
+
+            $tasks = [];
+            foreach ($operationIds as $opId) {
+                $opId = (int) trim($opId);
+                if ($opId && isset($operations[$opId])) {
+                    $duration = (int) ($operations[$opId]->duration ?? 0);
+                    $tasks[] = [$opId, $duration, (bool) $coInfo['is_locked']];
                 }
+            }
 
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'shipment_deadline' => Carbon::parse($product->shipment_deadline)->format('Y-m-d H:i'),
-                    'tasks' => $tasks,
-                ];
-            })->toArray(),
+            $shipmentDeadline = $p->shipment_deadline ?? $p->shipping_date;
+
+            $productsPayload[] = [
+                'id'                => (int) $p->id,
+                'name'              => (string) $p->name,
+                'shipment_deadline' => Carbon::parse($shipmentDeadline)->format('Y-m-d H:i'),
+                'tasks'             => $tasks,
+            ];
+        }
+
+        $datas = [
+            'start_time' => $startCarbon->format('Y-m-d H:i'),
+            'products'   => $productsPayload,
         ];
+
         // dd($datas);
+
         try {
             try {
                 $response = Http::timeout(30)->post($urlLocal, $datas);
-                // dd($response->object());
                 if (!$response->ok()) {
-                    // Jika gagal, coba ke API kedua
                     $response = Http::timeout(30)->post($url, $datas);
                 }
             } catch (\Exception $ex) {
-                // Jika gagal, coba ke API kedua
                 $response = Http::timeout(30)->post($url, $datas);
             }
             return $response->object();
@@ -712,36 +749,50 @@ class PlanSimulateController extends Controller
         return redirect()->route('plan-simulate.show', $plan->id)->with('success', 'CO removed from plan successfully.');
     }
 
-    public function generatePlan($plan)
+    public function generatePlan(Request $request, $planId)
     {
-        // dd($plan);
-        $plan = Plan::with('planProductCos', 'planProductCos.co')->findOrFail($plan);
-        // dd($plan);
+        $locked = $request->input('locked', []);
 
-        $generate = $this->generateSimulationSchedule(
-            $plan->planProductCos->map(function ($ppc) {
-                return optional($ppc->co)->product_id;
-            })->filter(),
-            $plan->start_time
-        );
+        // normalkan map locked dari request (opsional)
+        $lockedNorm = [];
+        foreach ($locked as $k => $v) {
+            $lockedNorm[(int) $k] = (int) $v;
+        }
+
+        $plan = Plan::with('planProductCos', 'planProductCos.co')->findOrFail($planId);
+
+        // suntikkan is_locked ke CO
+        $plan->planProductCos->transform(function ($ppc) use ($lockedNorm) {
+            if ($ppc->co) {
+                $coId = (int) $ppc->co->id;
+                $ppc->co->setAttribute(
+                    'is_locked',
+                    array_key_exists($coId, $lockedNorm) ? (bool) $lockedNorm[$coId] : (bool) ($ppc->co->is_locked ?? false)
+                );
+            }
+            return $ppc;
+        });
+
+        // >>> PANGGIL METHOD BARU (V2) YANG BAWA co_id + is_locked <<<
+        $generate = $this->generateSimulationSchedule($plan->planProductCos, $plan->start_time);
 
         // dd($generate);
-
-        foreach ($generate->tasks as $schedule) {
-            // dd($schedule);
-            $simulate = SimulateSchedule::create([
-                'plan_id' => $plan->id,
-                'product_id' => $schedule->product_id ?? $schedule->productId ?? null,
-                'operation_id' => $schedule->operation_id ?? null,
-                'quantity' => $schedule->quantity ?? 0,
-                'plan_speed' => $schedule->plan_speed ?? 0,
+        // simpan hasil
+        foreach ($generate->tasks ?? [] as $schedule) {
+            SimulateSchedule::create([
+                'plan_id'          => $plan->id,
+                'product_id'       => $schedule->product_id ?? $schedule->productId ?? null,
+                'operation_id'     => $schedule->operation_id ?? null,
+                'quantity'         => $schedule->quantity ?? 0,
+                'plan_speed'       => $schedule->plan_speed ?? 0,
                 'conversion_value' => $schedule->conversion_value ?? 0,
-                'plan_duration' => $schedule->duration ?? 0,
-                'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time) : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
-                'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time) : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+                'plan_duration'    => $schedule->duration ?? 0,
+                'start_time'       => isset($schedule->start_time) ? Carbon::parse($schedule->start_time)
+                    : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
+                'end_time'         => isset($schedule->end_time) ? Carbon::parse($schedule->end_time)
+                    : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
+                'is_locked'        => (bool) ($schedule->is_locked ?? false),
             ]);
-
-            // dd($simulate);
         }
 
         return redirect()->route('plan-simulate.show', $plan->id)->with('success', 'Plan generated successfully.');
