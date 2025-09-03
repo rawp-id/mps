@@ -22,9 +22,9 @@ Route::get('gantt/processes/{id}', [ScheduleController::class, 'ganttByProcess']
 
 Route::post('schedules/{id}/updateDependencySafety', [ScheduleController::class, 'updateDependencySafe'])->name('schedules.updateDependencySafety');
 
-Route::get('schedules/{productId}/product', [ScheduleController::class, 'showByProduct'])->name('schedules.show.product');
+Route::get('schedules/{coProductId}/coProduct', [ScheduleController::class, 'showByProduct'])->name('schedules.show.coProduct');
 
-Route::resource('schedules', ScheduleController::class);
+Route::resource('schedules/calender', ScheduleController::class);
 
 Route::get('/plan-simulate', [PlanSimulateController::class, 'index'])->name('plan-simulate.index');
 Route::get('/plan-simulate/create', [PlanSimulateController::class, 'create'])->name('plan-simulate.create');

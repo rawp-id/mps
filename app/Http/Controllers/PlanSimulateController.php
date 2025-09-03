@@ -118,7 +118,7 @@ class PlanSimulateController extends Controller
     {
         $plans = Plan::all();
         $products = Product::where('is_completed', false)->get();
-        $cos = Co::with('product')->where('is_completed', false)->get(); // Ambil semua CO jika diperlukan
+        $cos = Co::with('coProducts')->where('is_completed', false)->get(); // Ambil semua CO jika diperlukan
         // dd($products, $cos, $plans);
         return view('plan-simulate.create', compact('products', 'cos', 'plans'));
     }

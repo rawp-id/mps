@@ -33,7 +33,7 @@
             </button>
             <ul class="dropdown-menu" aria-labelledby="filterDropdown">
                 <li><a class="dropdown-item"
-                        href="{{ route('schedules.gantt', ['start_date' => $startDate, 'end_date' => $endDate]) }}">Products</a>
+                        href="{{ route('schedules.gantt', ['start_date' => $startDate, 'end_date' => $endDate]) }}">coProductss</a>
                 </li>
 
                 <li class="dropdown-submenu position-relative">
@@ -219,19 +219,19 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('.dropdown-item[data-product]').forEach(function(item) {
+                document.querySelectorAll('.dropdown-item[data-coProducts]').forEach(function(item) {
                     item.addEventListener('click', function(e) {
                         e.preventDefault();
-                        const productId = this.getAttribute('data-product');
-                        // TODO: Implement filtering logic for the timeline based on productId
-                        // Example: filterTimeline(productId);
+                        const coProductsId = this.getAttribute('data-coProducts');
+                        // TODO: Implement filtering logic for the timeline based on coProductsId
+                        // Example: filterTimeline(coProductsId);
                     });
                 });
             });
         </script>
     </div>
     {{-- <div class="mt-5">
-        {{ $products->links('pagination::bootstrap-5') }}
+        {{ $coProductss->links('pagination::bootstrap-5') }}
     </div> --}}
 
     <div class="mt-3 mb-5">
@@ -257,10 +257,10 @@
             });
 
             // 2️⃣ Buat array groups terurut ID ASC
-            const sortedProducts = Array.from(machineMap.entries())
+            const sortedcoProductss = Array.from(machineMap.entries())
                 .sort((a, b) => a[0] - b[0]); // sort by numeric ID
 
-            sortedProducts.forEach(([id, machineName]) => {
+            sortedcoProductss.forEach(([id, machineName]) => {
                 groups.push({
                     id,
                     content: machineName
@@ -272,7 +272,7 @@
                 items.push({
                     id: s.id,
                     group: s.machine ? parseInt(s.machine.id) : 0,
-                    content: s.product?.name ?? 'Unknown Product',
+                    content: s.coProducts?.name ?? 'Unknown coProducts',
                     start: s.start_time,
                     end: s.end_time
                 });

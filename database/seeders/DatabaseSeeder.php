@@ -250,12 +250,12 @@ class DatabaseSeeder extends Seeder
 
         $cos = [
             [
-                'product_id' => 1,
+                // 'product_id' => 1,
                 'code' => 'CO001',
                 'name' => 'CO for Product 1',
                 'description' => 'CO description for Product 1',
                 'co_user' => 'user1',
-                'shipping_date' => now()->addDays(1),
+                // 'shipping_date' => now()->addDays(1),
                 'process_details' => 'Process details for Product 1',
                 'is_completed' => false,
                 'status' => 'pending',
@@ -265,12 +265,12 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'product_id' => 4,
+                // 'product_id' => 4,
                 'code' => 'CO002',
                 'name' => 'CO for Product 4',
                 'description' => 'CO description for Product 4',
                 'co_user' => 'user2',
-                'shipping_date' => now()->addDays(2),
+                // 'shipping_date' => now()->addDays(2),
                 'process_details' => 'Process details for Product 4',
                 'is_completed' => false,
                 'status' => 'pending',

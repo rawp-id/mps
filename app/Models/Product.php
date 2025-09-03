@@ -18,15 +18,6 @@ class Product extends Model
         return $this->belongsTo(Machine::class);
     }
 
-    public function schedules()
-    {
-        return $this->hasMany(Schedule::class);
-    }
-    public function co()
-    {
-        return $this->belongsTo(Co::class);
-    }
-
     public function componentProduct()
     {
         return $this->hasMany(ComponentProduct::class);
@@ -40,5 +31,10 @@ class Product extends Model
     public function boms()
     {
         return $this->hasMany(BOM::class, 'product_id');
+    }
+
+    public function coProducts()
+    {
+        return $this->hasMany(CoProduct::class);
     }
 }

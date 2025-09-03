@@ -156,19 +156,19 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('.dropdown-item[data-product]').forEach(function(item) {
+                document.querySelectorAll('.dropdown-item[data-coProducts]').forEach(function(item) {
                     item.addEventListener('click', function(e) {
                         e.preventDefault();
-                        const productId = this.getAttribute('data-product');
-                        // TODO: Implement filtering logic for the timeline based on productId
-                        // Example: filterTimeline(productId);
+                        const coProductsId = this.getAttribute('data-coProducts');
+                        // TODO: Implement filtering logic for the timeline based on coProductsId
+                        // Example: filterTimeline(coProductsId);
                     });
                 });
             });
         </script>
     </div>
     {{-- <div class="mt-5">
-        {{ $products->links('pagination::bootstrap-5') }}
+        {{ $coProductss->links('pagination::bootstrap-5') }}
     </div> --}}
 
     <div class="mt-3 mb-5">
@@ -186,24 +186,24 @@
             const items = [];
 
             // 1️⃣ Kumpulkan produk unik dengan ID numerik
-            const productMap = new Map();
+            const coProductsMap = new Map();
             schedules.forEach(s => {
-                const id = s.product ? parseInt(s.product.id) : 0;
-                const name = (s.product?.name?.length > 20) ? s.product.name.substring(0, 20) + '…' : (s
-                    .product?.name ?? 'Unknown Product');
-                productMap.set(id, name);
+                const id = s.coProducts ? parseInt(s.coProducts.id) : 0;
+                const name = (s.coProducts?.name?.length > 20) ? s.coProducts.name.substring(0, 20) + '…' : (s
+                    .coProducts?.name ?? 'Unknown coProducts');
+                coProductsMap.set(id, name);
             });
 
             // 2️⃣ Buat array groups terurut ID ASC
             // Urutkan produk sesuai urutan kemunculan pertama pada schedules (berdasarkan schedule id)
             const seen = new Set();
-            // Sort schedules ascending by schedule id to get products in order of first appearance
+            // Sort schedules ascending by schedule id to get coProductss in order of first appearance
             schedules.slice().sort((a, b) => a.id - b.id).forEach(s => {
-                const id = s.product ? parseInt(s.product.id) : 0;
+                const id = s.coProducts ? parseInt(s.coProducts.id) : 0;
                 if (!seen.has(id)) {
                     groups.push({
                         id,
-                        content: productMap.get(id)
+                        content: coProductsMap.get(id)
                     });
                     seen.add(id);
                 }
@@ -213,7 +213,7 @@
             schedules.forEach(s => {
                 items.push({
                     id: s.id,
-                    group: s.product ? parseInt(s.product.id) : 0,
+                    group: s.coProducts ? parseInt(s.coProducts.id) : 0,
                     content: s.operation?.name ?? 'Process',
                     start: s.start_time,
                     end: s.end_time

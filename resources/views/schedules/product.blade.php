@@ -43,10 +43,10 @@
                         <div class="d-flex flex-row gap-2 align-items-center">
                             <button class="btn btn-sm btn-primary w-100" data-bs-toggle="modal"
                                 data-bs-target="#staticBackdrop{{ $schedule->id }}">Delay</button>
-                            <a href="{{ route('schedules.show', $schedule) }}" class="btn btn-sm btn-info w-100">View</a>
-                            <a href="{{ route('schedules.edit', $schedule) }}"
+                            <a href="{{ route('calender.show', $schedule) }}" class="btn btn-sm btn-info w-100">View</a>
+                            <a href="{{ route('calender.edit', $schedule) }}"
                                 class="btn btn-sm btn-warning w-100">Edit</a>
-                            <form action="{{ route('schedules.destroy', $schedule) }}" method="POST"
+                            <form action="{{ route('calender.destroy', $schedule) }}" method="POST"
                                 style="display:inline-block" onsubmit="return confirm('Are you sure?')">
                                 @csrf
                                 @method('DELETE')

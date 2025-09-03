@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CoProduct;
 use Carbon\Carbon;
 use App\Models\Machine;
 use App\Models\Operations;
@@ -16,8 +17,8 @@ class ScheduleController extends Controller
 {
     public function index()
     {
-        $products = Product::all();
-        return view('schedules.index', compact('products'));
+        $coProducts = CoProduct::all();
+        return view('schedules.index', compact('coProducts'));
     }
 
     public function gantt(Request $request)
@@ -25,12 +26,12 @@ class ScheduleController extends Controller
         $startDate = $request->input('start_date') ?? Carbon::today()->toDateString();
         $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
 
-        $schedules = Schedule::with(['product', 'process', 'machine', 'operation'])
-            ->join('products', 'schedules.product_id', '=', 'products.id')
-            ->whereDate('schedules.start_time', '>=', $startDate)
-            ->whereDate('schedules.end_time', '<=', $endDate)
-            ->orderByDesc('products.shipping_date')
-            ->select('schedules.*')
+        $schedules = Schedule::with(['coProducts', 'process', 'machine', 'operation'])
+            ->whereDate('start_time', '>=', $startDate)
+            ->whereDate('end_time', '<=', $endDate)
+            ->whereHas('coProducts', function ($query) {
+                $query->orderByDesc('shipment_date');
+            })
             ->get();
 
         $machines = Machine::all();
@@ -52,7 +53,7 @@ class ScheduleController extends Controller
         $operations = Operations::with(['process', 'machine'])->get();
 
         if ($id) {
-            $schedules = Schedule::with(['product', 'process', 'machine', 'operation', 'operation.process', 'operation.machine'])
+            $schedules = Schedule::with(['coProducts', 'process', 'machine', 'operation', 'operation.process', 'operation.machine'])
                 ->whereDate('schedules.start_time', '>=', $startDate)
                 ->whereDate('schedules.end_time', '<=', $endDate)
                 ->whereHas('operation', function ($query) use ($id) {
@@ -61,7 +62,7 @@ class ScheduleController extends Controller
                 ->latest()
                 ->get();
         } else {
-            $schedules = Schedule::with(['product', 'process', 'machine', 'operation'])
+            $schedules = Schedule::with(['coProducts', 'process', 'machine', 'operation'])
                 ->whereDate('schedules.start_time', '>=', $startDate)
                 ->whereDate('schedules.end_time', '<=', $endDate)
                 ->latest()
@@ -81,7 +82,7 @@ class ScheduleController extends Controller
         $processes = Process::all();
         $operations = Operations::with(['process', 'machine'])->get();
 
-        $schedules = Schedule::with(['product', 'process', 'machine', 'operation', 'operation.process', 'operation.machine'])
+        $schedules = Schedule::with(['coProducts', 'process', 'machine', 'operation', 'operation.process', 'operation.machine'])
             ->whereDate('schedules.start_time', '>=', $startDate)
             ->whereDate('schedules.end_time', '<=', $endDate)
             ->whereHas('operation', function ($query) use ($id) {
@@ -89,7 +90,7 @@ class ScheduleController extends Controller
             })
             ->latest()
             ->get();
-            // dd($schedules->toArray());
+        // dd($schedules->toArray());
         // $schedules = Schedule::with(['product', 'process', 'machine'])
         //     ->orderBy('process_id')
         //     ->latest()
@@ -98,10 +99,10 @@ class ScheduleController extends Controller
         return view('schedules.gantt-chart-process', compact('schedules', 'startDate', 'endDate', 'id', 'machines', 'processes', 'operations'));
     }
 
-    public function showByProduct($productId)
+    public function showByProduct($coProductId)
     {
-        $schedules = Schedule::with(['product', 'process', 'machine'])
-            ->where('product_id', $productId)
+        $schedules = Schedule::with(relations: ['coProducts', 'process', 'machine'])
+            ->where('co_product_id', $coProductId)
             ->latest()
             ->get();
 
@@ -113,7 +114,7 @@ class ScheduleController extends Controller
     public function create()
     {
         return view('schedules.create', [
-            'products' => Product::all(),
+            'coProducts' => CoProduct::all(),
             'machines' => Machine::all(),
             'processes' => Process::all(),
         ]);
@@ -122,7 +123,7 @@ class ScheduleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'co_product_id' => 'required|exists:co_products,id',
             'process_id' => 'required|exists:processes,id',
             'machine_id' => 'required|exists:machines,id',
             'previous_schedule_id' => 'nullable|exists:schedules,id',
@@ -136,7 +137,7 @@ class ScheduleController extends Controller
 
         Schedule::create($validated);
 
-        return redirect()->route('schedules.index')->with('success', 'Schedule created successfully.');
+        return redirect()->route('calender.index')->with('success', 'Schedule created successfully.');
     }
 
     public function show(Schedule $schedule)
@@ -148,7 +149,7 @@ class ScheduleController extends Controller
     {
         return view('schedules.edit', [
             'schedule' => $schedule,
-            'products' => Product::all(),
+            'coProducts' => CoProduct::all(),
             'machines' => Machine::all(),
             'processes' => Process::all(),
         ]);
@@ -157,7 +158,7 @@ class ScheduleController extends Controller
     public function update(Request $request, Schedule $schedule)
     {
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'co_product_id' => 'required|exists:co_products,id',
             'process_id' => 'required|exists:processes,id',
             'machine_id' => 'required|exists:machines,id',
             'previous_schedule_id' => 'nullable|exists:schedules,id',
@@ -171,7 +172,7 @@ class ScheduleController extends Controller
 
         $schedule->update($validated);
 
-        return redirect()->route('schedules.index')->with('success', 'Schedule updated successfully.');
+        return redirect()->route('calender.index')->with('success', 'Schedule updated successfully.');
     }
 
     public function delaySchedule(Request $request, $id)
@@ -179,7 +180,7 @@ class ScheduleController extends Controller
         $schedules = Schedule::all();
         $thisSchedule = Schedule::findOrFail($id); // Bisa dinamis nanti
 
-        $shipmentDeadline = Carbon::parse($thisSchedule->product->shipping_date);
+        $shipmentDeadline = Carbon::parse($thisSchedule->coProducts->shipment_date);
 
         $endProcessProduct = null;
 
@@ -188,7 +189,7 @@ class ScheduleController extends Controller
         $delayMinutes = $inputStartTime ? Carbon::parse($inputStartTime)->diffInMinutes($thisSchedule->start_time) : 10;
 
         foreach ($schedules as $item) {
-            if ($item->product_id == $thisSchedule->product_id && $item->is_final_process) {
+            if ($item->co_product_id == $thisSchedule->co_product_id && $item->is_final_process) {
                 $endProcessProduct = $item;
                 break;
             }
@@ -212,7 +213,7 @@ class ScheduleController extends Controller
 
             // Cari proses berikutnya dalam chain produk yang sama
             $current = Schedule::where('previous_schedule_id', $current->id)
-                ->where('product_id', $thisSchedule->product_id)
+                ->where('co_product_id', $thisSchedule->co_product_id)
                 ->first();
         }
 
@@ -241,7 +242,7 @@ class ScheduleController extends Controller
             while ($current) {
                 $lastTime = Carbon::parse($current->end_time);
                 $nextSchedule = Schedule::where('previous_schedule_id', $current->id)
-                    ->where('product_id', $current->product_id)
+                    ->where('co_product_id', $current->co_product_id)
                     ->first();
                 if ($nextSchedule) {
                     $nextSchedule->start_time = $lastTime;
@@ -261,7 +262,6 @@ class ScheduleController extends Controller
 
         // dd('All schedules updated successfully.');
         return redirect()->back()->with('success', 'All schedules updated successfully.');
-
     }
 
     public function advanceSchedule(Request $request, $id)
@@ -270,12 +270,12 @@ class ScheduleController extends Controller
         $thisSchedule = Schedule::findOrFail($id); // Bisa dinamis nanti
         $delayMinutes = (int) $request->input('advance_minutes', 10) * -1; // pengurangan waktu
 
-        $shipmentDeadline = Carbon::parse($thisSchedule->product->shipping_date);
+        $shipmentDeadline = Carbon::parse($thisSchedule->coProducts->shipment_date);
         $startProcess = $thisSchedule;
 
         // Validasi apakah ada proses sebelumnya yang bentrok jika dimajukan
         $prevSchedule = Schedule::where('id', $thisSchedule->previous_schedule_id)
-            ->where('product_id', $thisSchedule->product_id)
+            ->where('co_product_id', $thisSchedule->co_product_id)
             ->first();
 
         if ($prevSchedule) {
@@ -307,7 +307,7 @@ class ScheduleController extends Controller
                 break;
 
             $current = Schedule::where('previous_schedule_id', $current->id)
-                ->where('product_id', $current->product_id)
+                ->where('co_product_id', $current->co_product_id)
                 ->first();
         }
 
@@ -329,14 +329,14 @@ class ScheduleController extends Controller
         }
 
         // Re-adjust waktu semua rantai yang berkaitan agar sesuai dengan dependency-nya
-        $chain = Schedule::where('product_id', $thisSchedule->product_id)->get();
+        $chain = Schedule::where('co_product_id', $thisSchedule->co_product_id)->get();
 
         foreach ($chain as $schedule) {
             $current = $schedule;
             while ($current) {
                 $lastTime = Carbon::parse($current->end_time);
                 $nextSchedule = Schedule::where('previous_schedule_id', $current->id)
-                    ->where('product_id', $current->product_id)
+                    ->where('co_product_id', $current->co_product_id)
                     ->first();
 
                 if ($nextSchedule) {
@@ -381,7 +381,7 @@ class ScheduleController extends Controller
         $current = $schedule;
         while (true) {
             $next = Schedule::where('previous_schedule_id', $current->id)
-                ->where('product_id', $current->product_id)
+                ->where('co_product_id', $current->co_product_id)
                 ->first();
 
             if (!$next) {
@@ -452,7 +452,7 @@ class ScheduleController extends Controller
         $current = $schedule;
         while (true) {
             $next = Schedule::where('previous_schedule_id', $current->id)
-                ->where('product_id', $current->product_id)
+                ->where('co_product_id', $current->co_product_id)
                 ->first();
 
             if (!$next)
@@ -472,7 +472,7 @@ class ScheduleController extends Controller
 
         foreach ($dependentSchedules as $dep) {
             $latestEnd = Schedule::where('process_id', $schedule->process_id)
-                ->where('product_id', $schedule->product_id)
+                ->where('co_product_id', $schedule->co_product_id)
                 ->max('end_time');
 
             if ($latestEnd) {
@@ -527,7 +527,7 @@ class ScheduleController extends Controller
             }
 
             // return response()->json(['message' => 'Delay applied successfully']);
-            return redirect()->route('schedules.index')->with('success', 'Delay applied successfully.');
+            return redirect()->route('calender.index')->with('success', 'Delay applied successfully.');
         } catch (\Exception $e) {
             // return response()->json(['error' => $e->getMessage()], 400);
             return redirect()->back()->withErrors(['error' => $e->getMessage()]);
@@ -599,7 +599,7 @@ class ScheduleController extends Controller
         $children = Schedule::where(function ($q) use ($schedule) {
             // linear flow dalam produk yg sama
             $q->where('previous_schedule_id', $schedule->id)
-                ->where('product_id', $schedule->product_id);
+                ->where('co_product_id', $schedule->co_product_id);
         })
             ->orWhere(function ($q) use ($schedule) {
                 // dependency lintas-produk
@@ -624,7 +624,7 @@ class ScheduleController extends Controller
             if ($depEnd) {                               // mengikuti proses dependency
                 $durasi = $child->start_time && $child->end_time
                     ? Carbon::parse($child->end_time)
-                        ->diffInMinutes(Carbon::parse($child->start_time))
+                    ->diffInMinutes(Carbon::parse($child->start_time))
                     : 0;
 
                 $childClone->start_time = $depEnd;
@@ -673,7 +673,7 @@ class ScheduleController extends Controller
 
         try {
             $this->updateScheduleWithDelay($schedule, $validated['delay_minutes']);
-            return redirect()->route('schedules.index')->with('success', 'Schedule updated successfully.');
+            return redirect()->route('calender.index')->with('success', 'Schedule updated successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => $e->getMessage()]);
         }
@@ -681,8 +681,8 @@ class ScheduleController extends Controller
 
     function updateScheduleWithDelay(Schedule $schedule, int $delayMinutes)
     {
-        $product = $schedule->product;
-        $shipmentDeadline = Carbon::parse($product->shipping_date);
+        $coProduct = $schedule->co_product;
+        $shipmentDeadline = Carbon::parse($coProduct->shipment_date);
 
         // Step 1. Geser proses ini
         $schedule->start_time = Carbon::parse($schedule->start_time)->addMinutes($delayMinutes);
@@ -778,9 +778,9 @@ class ScheduleController extends Controller
         }
     }
 
-    function hasProductProcessConflict($productId, $processId, Carbon $start, Carbon $end, $excludeId = null): bool
+    function hasProductProcessConflict($coProductId, $processId, Carbon $start, Carbon $end, $excludeId = null): bool
     {
-        return Schedule::where('product_id', $productId)
+        return Schedule::where('co_product_id', $coProductId)
             ->where('process_id', $processId)
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
             ->where(function ($query) use ($start, $end) {
@@ -794,12 +794,12 @@ class ScheduleController extends Controller
             ->exists();
     }
 
-    function getNextAvailableSmartTimeForProductProcess($productId, $processId, Carbon $afterTime, int $durationMinutes, Carbon $shipmentDeadline): Carbon
+    function getNextAvailableSmartTimeForProductProcess($coProductId, $processId, Carbon $afterTime, int $durationMinutes, Carbon $shipmentDeadline): Carbon
     {
         $time = $afterTime->copy();
 
         while (true) {
-            $conflict = Schedule::where('product_id', $productId)
+            $conflict = Schedule::where('co_product_id', $coProductId)
                 ->where('process_id', $processId)
                 ->where(function ($query) use ($time, $durationMinutes) {
                     $end = $time->copy()->addMinutes($durationMinutes);
@@ -830,6 +830,6 @@ class ScheduleController extends Controller
     public function destroy(Schedule $schedule)
     {
         $schedule->delete();
-        return redirect()->route('schedules.index')->with('success', 'Schedule deleted successfully.');
+        return redirect()->route('calender.index')->with('success', 'Schedule deleted successfully.');
     }
 }

@@ -5,7 +5,7 @@
 @section('content')
 <h1>Add New Schedule</h1>
 
-<form action="{{ route('schedules.store') }}" method="POST">
+<form action="{{ route('calender.store') }}" method="POST">
     @csrf
 
     <div class="mb-3">
@@ -104,6 +104,6 @@
     </div>
 
     <button type="submit" class="btn btn-success">Save</button>
-    <a href="{{ route('schedules.index') }}" class="btn btn-secondary">Cancel</a>
+    <a href="{{ route('calender.index') }}" class="btn btn-secondary">Cancel</a>
 </form>
 @endsection

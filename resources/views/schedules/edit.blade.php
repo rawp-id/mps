@@ -5,7 +5,7 @@
 @section('content')
 <h1>Edit Schedule #{{ $schedule->id }}</h1>
 
-<form action="{{ route('schedules.update', $schedule) }}" method="POST">
+<form action="{{ route('calender.update', $schedule) }}" method="POST">
     @csrf
     @method('PUT')
 
@@ -106,6 +106,6 @@
     </div>
 
     <button type="submit" class="btn btn-primary">Update</button>
-    <a href="{{ route('schedules.index') }}" class="btn btn-secondary">Cancel</a>
+    <a href="{{ route('calender.index') }}" class="btn btn-secondary">Cancel</a>
 </form>
 @endsection

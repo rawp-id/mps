@@ -3,7 +3,7 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>CO List</h2>
-        <a href="{{ route('co.create') }}" class="btn btn-primary">Refresh Data</a>
+        <a href="{{ route('co.create') }}" class="btn btn-primary">Create Data</a>
     </div>
     <span>Updated at: {{ now()->format('Y-m-d H:i:s') }}</span>
 
@@ -12,7 +12,6 @@
             <tr>
                 <th>Name</th>
                 <th>Description</th>
-                <th>Shipping Date</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -21,7 +20,6 @@
                 <tr>
                     <td>{{ $co->name }}</td>
                     <td>{{ $co->description }}</td>
-                    <td>{{ $co->shipping_date }}</td>
                     <td>
                         <a href="{{ route('co.show', $co->id) }}" class="btn btn-info">View</a>
                         <a href="{{ route('co.edit', $co->id) }}" class="btn btn-warning">Edit</a>

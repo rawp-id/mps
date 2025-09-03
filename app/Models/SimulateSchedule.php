@@ -9,10 +9,6 @@ class SimulateSchedule extends Model
     //
     protected $guarded = ['id'];
 
-    public function product()
-    {
-        return $this->belongsTo(Product::class);
-    }
     public function process()
     {
         return $this->belongsTo(Process::class);
@@ -33,9 +29,12 @@ class SimulateSchedule extends Model
     {
         return $this->belongsTo(Plan::class);
     }
-
     public function operation()
     {
         return $this->belongsTo(Operations::class);
+    }
+    public function coProduct()
+    {
+        return $this->belongsTo(CoProduct::class);
     }
 }

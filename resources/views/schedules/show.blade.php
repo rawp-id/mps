@@ -18,6 +18,6 @@
     <tr><th>End Time</th><td>{{ $schedule->end_time }}</td></tr>
 </table>
 
-<a href="{{ route('schedules.index') }}" class="btn btn-secondary">Back to List</a>
-<a href="{{ route('schedules.edit', $schedule) }}" class="btn btn-warning">Edit</a>
+<a href="{{ route('calender.index') }}" class="btn btn-secondary">Back to List</a>
+<a href="{{ route('calender.edit', $schedule) }}" class="btn btn-warning">Edit</a>
 @endsection

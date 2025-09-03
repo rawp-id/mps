@@ -54,12 +54,12 @@
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 events: [
-                    @foreach($products as $product)
-                        @if($product->shipping_date)
+                    @foreach($coProducts as $coProduct)
+                        @if($coProduct->shipment_date)
                         {
-                            title: '{{ $product->name }}',
-                            start: '{{ $product->shipping_date }}',
-                            url: '{{ route("schedules.show.product", $product->id) }}',
+                            title: '{{ $coProduct->name }}',
+                            start: '{{ $coProduct->shipment_date }}',
+                            url: '{{ route("schedules.show.coProduct", $coProduct->id) }}',
                         },
                         @endif
                     @endforeach

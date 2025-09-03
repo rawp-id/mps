@@ -18,7 +18,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white" href="{{ route('schedules.index') }}">
+                    <a class="nav-link text-white" href="{{ route('calender.index') }}">
                         <i class="bi bi-calendar me-2"></i> Schedules
                     </a>
                 </li>

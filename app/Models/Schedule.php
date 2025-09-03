@@ -9,10 +9,6 @@ class Schedule extends Model
 {
     protected $guarded = ['id'];
 
-    public function product()
-    {
-        return $this->belongsTo(Product::class);
-    }
     public function machine()
     {
         return $this->belongsTo(Machine::class);
@@ -24,5 +20,10 @@ class Schedule extends Model
     public function operation()
     {
         return $this->belongsTo(Operations::class);
+    }
+
+    public function coProducts()
+    {
+        return $this->belongsTo(CoProduct::class, 'co_product_id');
     }
 }
