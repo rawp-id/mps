@@ -622,7 +622,7 @@ class PlanSimulateController extends Controller
 
         $schedulesQuery = SimulateSchedule::with([
             'machine',
-            'coProduct',
+            'coProduct.product',
             'process',
             'operation',
             'operation.machine',

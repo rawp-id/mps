@@ -28,7 +28,7 @@ class PlanGeneratorController extends Controller
             ->pluck('date')
             ->toArray();
 
-            // dd($days);
+        // dd($days);
 
         $days_start_end = CarbonPeriod::create($startDate, $endDate)->toArray();
 
@@ -145,7 +145,7 @@ class PlanGeneratorController extends Controller
 
         // 7b) SIMULATE locked => capacity locks + pins
         $simLockedRows = DB::table('simulate_schedules')
-            ->where('is_locked', 1)
+            // ->where('is_locked', 1)
             ->whereNotNull('start_time')
             ->whereNotNull('machine_id')
             ->whereBetween(DB::raw("date(start_time)"), [$startDate->toDateString(), $endDate->toDateString()])
@@ -196,7 +196,7 @@ class PlanGeneratorController extends Controller
         $coList = DB::table('co_products as cp')
             ->join('products as p', 'p.id', '=', 'cp.product_id')
             ->leftJoin('cos as c', 'c.id', '=', 'cp.co_id')
-            ->select('cp.id as co_product_id', 'cp.product_id', 'p.code', 'cp.shipment_date', 'p.shipping_date as product_ship')
+            ->select('cp.id as co_product_id', 'cp.product_id', 'p.code', 'cp.shipment_date')
             ->orderBy('cp.shipment_date', 'asc')
             ->get();
 
@@ -278,8 +278,8 @@ class PlanGeneratorController extends Controller
         // dd($payloadFile);
 
         // Jalankan python dengan argumen file payload
-        $python = env('PY_BIN', 'D:/Tech/work/erp/mps-rest/.venv/Scripts/python.exe');
-        $script = env('MPS_SOLVER', 'D:/Tech/work/erp/mps-rest/mps_fix_shift.py');
+        $python = env('PY_BIN', 'python');
+        $script = env('MPS_SOLVER', 'D:/Project/mps/solver/mps_fix_shift.py');
 
         $proc = new Process([$python, $script, $payloadFile]);
         $proc->setTimeout(180);
@@ -302,7 +302,7 @@ class PlanGeneratorController extends Controller
                 // Hapus hasil lama yang tidak locked
                 DB::table('simulate_schedules')
                     ->where('plan_id', $planId)
-                    ->where('is_locked', 0)
+                    // ->where('is_locked', 0)
                     ->delete();
 
                 // Insert baris baru
@@ -358,15 +358,8 @@ class PlanGeneratorController extends Controller
             });
         }
 
-        // 12) Balikkan hasil + payload (opsional untuk debug)
-        return response()->json([
-            'status' => $result['status'] ?? 'UNKNOWN',
-            'kpi' => $result['job_kpi'] ?? [],
-            'machine_load' => $result['machine_load'] ?? [],
-            'assignments' => $result['assignments'] ?? [],
-            'plan_id' => $planId,
-            'payload_sample' => $req->boolean('with_payload', false) ? $payload : null,
-        ]);
+        return redirect()->route('plan-simulate.show', $planId)
+            ->with('success', 'Plan berhasil digenerate!');
     }
 
     /* ===================== Helpers ===================== */

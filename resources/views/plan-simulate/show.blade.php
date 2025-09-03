@@ -9,6 +9,7 @@
             <a href="{{ route('plan-simulate.edit', $plan->id) }}" class="btn btn-warning me-2">Edit</a>
             <form id="generateForm" action="{{ route('plan-simulate.generate', $plan->id) }}" method="POST">
                 @csrf
+                <input type="hidden" name="plan_id" value="{{ $plan->id }}">
                 <button type="submit" class="btn btn-info me-2">Generate</button>
             </form>
             <a href="{{ route('apply.schedule', $plan->id) }}" class="btn btn-primary me-2">Apply To Schedule</a>
@@ -69,7 +70,7 @@
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        @foreach($co->coProducts as $prod)
+                                                        @foreach ($co->coProducts as $prod)
                                                             <div>{{ $prod->product->name }}</div>
                                                         @endforeach
                                                     </td>
@@ -320,32 +321,33 @@
             const groups = [];
             const items = [];
 
-            // Kumpulkan mesin unik
+            // Map co_product untuk jadi grup
             const productMap = new Map();
             schedules.forEach(s => {
-                const id = s.product ? parseInt(s.product.id) : 0;
+                const id = s.co_product.product ? parseInt(s.co_product.product.id) : 0;
                 let name = '';
-                // Jika ada filter process_id atau machine_id di URL, tambahkan ke nama
+
+                // Ambil parameter dari URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const processId = urlParams.get('process_id');
                 const machineId = urlParams.get('machine_id');
 
-                if (s.operation?.process && processId && s.operation.process.id == processId) {
+                if (processId && s.operation?.process && s.operation.process.id == processId) {
                     name = s.operation.process.name;
-                } else if (s.machine && machineId && s.machine.id == machineId) {
+                } else if (machineId && s.machine && s.machine.id == machineId) {
                     name = s.machine.name;
                 } else {
-                    name = (s.product?.name?.length > 20) ?
-                        s.product.name.substring(0, 20) + '…' :
-                        (s.product?.name ?? 'Unknown Product');
+                    name = (s.co_product.product?.name?.length > 20) ?
+                        s.co_product.product.name.substring(0, 20) + '…' :
+                        (s.co_product.product?.name ?? 'Unknown Product');
                 }
                 productMap.set(id, name);
             });
 
-            // Buat array groups terurut ID ASC
+            // Buat array groups terurut berdasarkan ID ASC
             const seen = new Set();
             schedules.slice().sort((a, b) => a.id - b.id).forEach(s => {
-                const id = s.product ? parseInt(s.product.id) : 0;
+                const id = s.co_product.product ? parseInt(s.co_product.product.id) : 0;
                 if (!seen.has(id)) {
                     groups.push({
                         id,
@@ -355,18 +357,18 @@
                 }
             });
 
-            // Buat items
+            // Buat items untuk Gantt chart
             schedules.forEach(s => {
                 items.push({
                     id: s.id,
-                    group: s.product ? parseInt(s.product.id) : 0,
+                    group: s.co_product.product ? parseInt(s.co_product.product.id) : 0,
                     content: (() => {
                         const urlParams = new URLSearchParams(window.location.search);
                         const processId = urlParams.get('process_id');
                         const machineId = urlParams.get('machine_id');
                         if (processId && s.operation?.process && s.operation.process.id ==
                             processId) {
-                            return s.product?.name ?? 'Product';
+                            return s.co_product.product?.name ?? 'Product';
                         } else if (machineId && s.machine && s.machine.id == machineId) {
                             return s.machine.name;
                         } else {
@@ -399,47 +401,48 @@
 
             // Modal HTML
             const modalHtml = `
-            <div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
-              <div class="modal-dialog">
-                <div class="modal-content">
-                  <div class="modal-header">
-                <h5 class="modal-title" id="editScheduleModalLabel">Edit Schedule</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body">
-                <form id="editScheduleForm">
-                  <div class="mb-3">
-                    <label for="editDuration" class="form-label">Duration (Default - <span id="planDurationLabel"></span> Menit)</label>
-                    <input type="text" class="form-control" id="editDuration" name="duration">
-                  </div>
-                  <input type="hidden" id="editScheduleId" name="id">
-                </form>
-                  </div>
-                  <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveScheduleBtn">Save</button>
-                  </div>
-                </div>
+        <div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+            <h5 class="modal-title" id="editScheduleModalLabel">Edit Schedule</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+            <form id="editScheduleForm">
+              <div class="mb-3">
+                <label for="editDuration" class="form-label">Duration (Default - <span id="planDurationLabel"></span> Menit)</label>
+                <input type="text" class="form-control" id="editDuration" name="duration">
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="editLocked" name="locked">
+                <label class="form-check-label" for="editLocked">Locked</label>
+              </div>
+              <input type="hidden" id="editScheduleId" name="id">
+            </form>
+              </div>
+              <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="saveScheduleBtn">Save</button>
               </div>
             </div>
-            `;
+          </div>
+        </div>
+        `;
             if (!document.getElementById('editScheduleModal')) {
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
             }
 
+            // Event saat item dipilih
             timeline.on('select', function(properties) {
                 if (properties.items.length > 0) {
                     const selectedItem = items.find(item => item.id === properties.items[0]);
-                    // console.log('Selected item:', selectedItem);
-                    // Isi modal dengan data
                     document.getElementById('editScheduleId').value = selectedItem.id;
                     document.getElementById('editDuration').value = selectedItem.duration;
                     document.getElementById('editLocked').checked = !!selectedItem.locked;
                     document.getElementById('planDurationLabel').innerText = selectedItem.plan_duration ||
                         'N/A';
-                    // Tampilkan modal
-                    const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
-                    modal.show();
+                    new bootstrap.Modal(document.getElementById('editScheduleModal')).show();
                 }
             });
 
@@ -448,15 +451,12 @@
                 const id = document.getElementById('editScheduleId').value;
                 const duration = document.getElementById('editDuration').value;
                 const locked = document.getElementById('editLocked').checked;
-                // TODO: Kirim ke backend via AJAX/fetch jika ingin simpan ke server
-                // Untuk demo, update di frontend saja
                 const idx = items.findIndex(item => item.id == id);
                 if (idx !== -1) {
                     items[idx].duration = duration;
                     items[idx].locked = locked;
                     timeline.setItems(new vis.DataSet(items));
                 }
-                // Tutup modal
                 bootstrap.Modal.getInstance(document.getElementById('editScheduleModal')).hide();
             });
         });

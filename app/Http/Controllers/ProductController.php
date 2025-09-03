@@ -58,7 +58,6 @@ class ProductController extends Controller
         $product = Product::create([
             'code' => $validated['code'],
             'name' => $validated['name'],
-            'shipping_date' => $validated['shipping_date'],
             'process_details' => $validated['process_details']
         ]);
 
@@ -102,7 +101,6 @@ class ProductController extends Controller
         $validated = $request->validate([
             'code' => 'required|unique:products,code,' . $product->id,
             'name' => 'required',
-            'shipping_date' => 'nullable|date',
             'process_details' => 'nullable|string',
         ]);
 
@@ -189,7 +187,6 @@ class ProductController extends Controller
             Product::create([
                 'code' => $row[0],
                 'name' => $row[1],
-                'shipping_date' => $row[2] ?? null,
                 'process_details' => $row[3] ?? null,
             ]);
         }

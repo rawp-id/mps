@@ -20,12 +20,6 @@
         @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Shipping Date</label>
-        <input type="datetime-local" class="form-control @error('shipping_date') is-invalid @enderror" name="shipping_date" value="{{ old('shipping_date', optional($product->shipping_date)->format('Y-m-d\TH:i')) }}">
-        @error('shipping_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
-
     <button type="submit" class="btn btn-success">Update</button>
     <a href="{{ route('products.index') }}" class="btn btn-secondary">Cancel</a>
 </form>

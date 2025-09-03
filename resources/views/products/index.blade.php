@@ -30,7 +30,6 @@
                 <th>#</th>
                 <th>Code</th>
                 <th>Name</th>
-                <th>Shipping Date</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -40,7 +39,6 @@
                 <td>{{ $loop->iteration }}</td>
                 <td>{{ $product->code }}</td>
                 <td>{{ $product->name }}</td>
-                <td>{{ $product->shipping_date ?? '-' }}</td>
                 <td class="d-flex">
                     <a href="{{ route('products.process', $product) }}" class="btn btn-secondary btn-sm me-1">Process</a>
                     <a href="{{ route('products.show', $product) }}" class="btn btn-warning btn-sm me-1">Detail</a>

@@ -289,14 +289,17 @@ class DatabaseSeeder extends Seeder
             [
                 'co_id' => 1,
                 'product_id' => 1,
+                'shipment_date' => now()->addDays(1),
             ],
             [
                 'co_id' => 1,
                 'product_id' => 2,
+                'shipment_date' => now()->addDays(1),
             ],
             [
                 'co_id' => 2,
                 'product_id' => 4,
+                'shipment_date' => now()->addDays(2),
             ],
         ];
 

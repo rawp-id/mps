@@ -283,7 +283,6 @@
 
                 document.addEventListener('click', function(e) {
                     if (e.target.id === 'add-step') {
-                        let stepIndex = {{ $processProduct->count() }};
                         const template = document.getElementById('step-template').innerHTML
                             .replace(/{index}/g, stepIndex)
                             .replace(/{stepNumber}/g, stepIndex + 1)

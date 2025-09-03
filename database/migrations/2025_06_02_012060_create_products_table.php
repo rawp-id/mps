@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
-            $table->dateTime('shipping_date')->nullable();
+            // $table->dateTime('shipping_date')->nullable();
             $table->string('process_details')->nullable();
             $table->boolean('is_completed')->default(false);
             $table->integer('stock')->default(0);
