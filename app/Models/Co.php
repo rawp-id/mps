@@ -13,11 +13,6 @@ class Co extends Model
         return $this->hasMany(PlanProductCo::class);
     }
 
-    public function plans()
-    {
-        return $this->belongsToMany(Plan::class, 'plan_product_cos');
-    }
-
     public function coProducts()
     {
         return $this->hasMany(CoProduct::class);

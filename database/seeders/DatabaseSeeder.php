@@ -284,7 +284,26 @@ class DatabaseSeeder extends Seeder
         foreach ($cos as $co) {
             \App\Models\Co::create($co);
         }
-        
+
+        $co_product = [
+            [
+                'co_id' => 1,
+                'product_id' => 1,
+            ],
+            [
+                'co_id' => 1,
+                'product_id' => 2,
+            ],
+            [
+                'co_id' => 2,
+                'product_id' => 4,
+            ],
+        ];
+
+        foreach ($co_product as $cp) {
+            \App\Models\CoProduct::create($cp);
+        }
+
         Plan::create([
             'name' => 'Plan for Product 1',
             'description' => 'Plan description for Product 1',

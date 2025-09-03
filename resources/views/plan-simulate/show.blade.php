@@ -56,7 +56,7 @@
                                         <tbody>
                                             @foreach ($cos as $co)
                                                 <tr class="{{ collect(old('co_ids'))->contains($co->id) ? 'table-success' : '' }}"
-                                                    data-product="{{ strtolower($co->product->name) }}">
+                                                    data-product="{{ $co->coProducts->pluck('product.name')->map(fn($n) => strtolower($n))->implode(',') }}">
                                                     <td>
                                                         <div class="form-check">
                                                             <input class="form-check-input" type="checkbox" name="co_ids[]"
@@ -68,7 +68,11 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                                                    <td>{{ $co->product->name }}</td>
+                                                    <td>
+                                                        @foreach($co->coProducts as $prod)
+                                                            <div>{{ $prod->product->name }}</div>
+                                                        @endforeach
+                                                    </td>
                                                     <td>{{ $co->description }}</td>
                                                     <td>{{ $co->co_user }}</td>
                                                     <td>{{ $co->shipping_date }}</td>

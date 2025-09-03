@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Co;
+use App\Models\CoProduct;
 use Carbon\Carbon;
 use App\Models\Plan;
 use App\Models\Product;
@@ -608,7 +609,7 @@ class PlanSimulateController extends Controller
         $products = Product::whereNotIn('id', $plan->planProductCos->pluck('product_id'))->get();
         // dd($products);
 
-        $cos = Co::whereNotIn('id', $plan->planProductCos->pluck('co_id'))->get();
+        $cos = Co::with('coProducts.product')->whereNotIn('id', $plan->planProductCos->pluck('co_id'))->get();
         // dd($cos);
 
         // dd($plan);
@@ -621,7 +622,7 @@ class PlanSimulateController extends Controller
 
         $schedulesQuery = SimulateSchedule::with([
             'machine',
-            'product',
+            'coProduct',
             'process',
             'operation',
             'operation.machine',
@@ -679,8 +680,6 @@ class PlanSimulateController extends Controller
             'duration' => 'required|integer|min:0',
         ]);
 
-
-
         // Update durasi plan
         $plan->update(['duration' => $request->input('duration')]);
 
@@ -697,7 +696,7 @@ class PlanSimulateController extends Controller
         foreach ($schedules as $schedule) {
             Schedule::create([
                 'product_id' => $schedule->product_id,
-                'co_id' => $schedule->co_id,
+                'co_product_id' => $schedule->co_product_id,
                 'operation_id' => $schedule->operation_id,
                 'process_id' => $schedule->process_id,
                 'machine_id' => $schedule->machine_id,
@@ -730,8 +729,7 @@ class PlanSimulateController extends Controller
         foreach ($request->input('co_ids', []) as $coId) {
             $plan->planProductCos()->create([
                 'plan_id' => $plan->id,
-                'product_id' => null, // Atau bisa diisi dengan ID produk jika ada
-                'co_id' => $coId,
+                'co_product_id' => $coId,
             ]);
         }
 
@@ -779,17 +777,15 @@ class PlanSimulateController extends Controller
         // dd($generate);
         // simpan hasil
         foreach ($generate->tasks ?? [] as $schedule) {
-            PlanProductCo::where('plan_id', $plan->id)
-                ->where('product_id', $schedule->product_id ?? $schedule->productId ?? null)
-                ->where('co_id', $schedule->co_id ?? null)
+            CoProduct::where('plan_id', $plan->id)
+                ->where('co_product_id', $schedule->co_product_id ?? null)
                 ->update([
                     'shipment_date' => $schedule->shipment_date ?? null,
                 ]);
             
             SimulateSchedule::create([
                 'plan_id'          => $plan->id,
-                'product_id'       => $schedule->product_id ?? $schedule->productId ?? null,
-                'co_id'            => $schedule->co_id ?? null,
+                'co_product_id'    => $schedule->co_product_id ?? null,
                 'operation_id'     => $schedule->operation_id ?? null,
                 'quantity'         => $schedule->quantity ?? 0,
                 'plan_speed'       => $schedule->plan_speed ?? 0,

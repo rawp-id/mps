@@ -13,9 +13,9 @@ class PlanProductCo extends Model
         return $this->belongsTo('App\Models\Plan');
     }
 
-    public function product()
+    public function coProduct()
     {
-        return $this->belongsTo('App\Models\Product');
+        return $this->belongsTo('App\Models\CoProduct');
     }
 
     public function co()
