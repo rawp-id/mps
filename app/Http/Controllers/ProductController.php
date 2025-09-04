@@ -191,6 +191,21 @@ class ProductController extends Controller
             ]);
         }
 
+        // Create default process_products for each imported product
+        foreach ($rows as $row) {
+            $product = Product::where('code', $row[0])->first();
+            if ($product) {
+                // Example: create a default operation process (customize as needed)
+                ProcessProduct::create([
+                    'product_id' => $product->id,
+                    'component_product_id' => null,
+                    'operation_id' => isset($row[3]) ? (int) $row[3] : 1,
+                    'type' => 'operation',
+                    'notes' => 'Imported default process',
+                ]);
+            }
+        }
+
         $duration = round(microtime(true) - $startTime, 2);
 
         session()->forget(['import_products_data', 'import_products_headers']);
