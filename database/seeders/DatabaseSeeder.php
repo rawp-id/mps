@@ -12,6 +12,8 @@ use App\Models\Product;
 use App\Models\Schedule;
 use Illuminate\Support\Arr;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -248,6 +250,18 @@ class DatabaseSeeder extends Seeder
             \App\Models\ComponentProduct::create($component);
         }
 
+        for ($i = 1; $i <= 10; $i++) {
+            DB::table('process_products')->insert([
+                'product_id' => rand(1, 6),
+                'component_product_id' => rand(0, 1) ? rand(1, 4) : null,
+                'operation_id' => rand(1, 9),
+                'type' => Arr::random(['operation', 'setting']),
+                'notes' => Str::random(20),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         $cos = [
             [
                 // 'product_id' => 1,
@@ -313,6 +327,28 @@ class DatabaseSeeder extends Seeder
             'is_applied' => false,
             'start_date' => now(),
         ]);
+
+        DB::table('plan_product_cos')->insert([
+            'plan_id' => 1,
+            'co_product_id' => 1,
+            'shipment_date' => now()->addDays(1),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('plan_product_cos')->insert([
+            'plan_id' => 1,
+            'co_product_id' => 2,
+            'shipment_date' => now()->addDays(1),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        // DB::table('plan_product_cos')->insert([
+        //     'plan_id' => 1,
+        //     'co_product_id' => 3,
+        //     'shipment_date' => now()->addDays(2),
+        //     'created_at' => now(),
+        //     'updated_at' => now(),
+        // ]);
 
         // Dummy Shifts
         $shifts = [

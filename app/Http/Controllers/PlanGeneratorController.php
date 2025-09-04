@@ -279,7 +279,7 @@ class PlanGeneratorController extends Controller
 
         // Jalankan python dengan argumen file payload
         $python = env('PY_BIN', 'python');
-        $script = env('MPS_SOLVER', 'D:/Project/mps/solver/mps_fix_shift.py');
+        $script = env('MPS_SOLVER', base_path('solver/mps_fix_shift.py'));
 
         $proc = new Process([$python, $script, $payloadFile]);
         $proc->setTimeout(180);
@@ -297,69 +297,185 @@ class PlanGeneratorController extends Controller
         }
 
         // 11) Simpan ke simulate_schedules (idempotent)
+        // if ($saveResults && in_array($result['status'] ?? 'UNKNOWN', ['OPTIMAL', 'FEASIBLE'])) {
+        //     DB::transaction(function () use ($planId, $result, $shifts) {
+        //         // Hapus hasil lama yang tidak locked
+        //         DB::table('simulate_schedules')
+        //             ->where('plan_id', $planId)
+        //             // ->where('is_locked', 0)
+        //             ->delete();
+
+        //         // Insert baris baru
+        //         $now = Carbon::now();
+        //         $rows = [];
+        //         foreach ($result['assignments'] as $a) {
+        //             $machineId = (int) $a['machine_id'];
+        //             $date = $a['date'];
+        //             $minutes = (int) $a['minutes'];
+
+        //             // Tentukan jam mulai default = earliest shift machine (kalau ada) else 08:00
+        //             $shiftList = $shifts->get($machineId, collect());
+        //             $startTime = '08:00:00';
+        //             if ($shiftList && $shiftList->count() > 0) {
+        //                 $earliest = $shiftList->sortBy('start_time')->first();
+        //                 $startTime = $earliest->start_time;
+        //             }
+        //             $startDT = Carbon::parse($date . ' ' . $startTime);
+        //             $endDT = (clone $startDT)->addMinutes($minutes);
+
+        //             $rows[] = [
+        //                 'plan_id' => $planId,
+        //                 'co_product_id' => (int) ($a['co_product_id'] ?? null),
+        //                 'process_id' => null, // opsional: isi via join operations.process_id jika perlu
+        //                 'machine_id' => $machineId,
+        //                 'operation_id' => (int) ($a['operation_id'] ?? null),
+        //                 'previous_schedule_id' => null,
+        //                 'process_dependency_id' => null,
+        //                 'is_start_process' => ($a['op_index'] ?? 0) === 0 ? 1 : 0,
+        //                 'is_final_process' => 0,
+        //                 'quantity' => 0,
+        //                 'plan_speed' => 0,
+        //                 'conversion_value' => null,
+        //                 'plan_duration' => $minutes,
+        //                 'duration' => $minutes,
+        //                 'start_time' => $startDT->toDateTimeString(),
+        //                 'end_time' => $endDT->toDateTimeString(),
+        //                 'shift_id' => null,
+        //                 'is_overtime' => 0,
+        //                 'adjusted_start' => null,
+        //                 'adjusted_end' => null,
+        //                 'created_at' => $now,
+        //                 'updated_at' => $now,
+        //             ];
+        //         }
+
+        //         if (!empty($rows)) {
+        //             // Bulk insert batched
+        //             foreach (array_chunk($rows, 500) as $chunk) {
+        //                 DB::table('simulate_schedules')->insert($chunk);
+        //             }
+        //         }
+        //     });
+        // }
+        // 11) Simpan ke simulate_schedules (idempotent) + TIME PACKING (tanpa overlap)
         if ($saveResults && in_array($result['status'] ?? 'UNKNOWN', ['OPTIMAL', 'FEASIBLE'])) {
-            DB::transaction(function () use ($planId, $result, $shifts) {
+            DB::transaction(function () use ($planId, $result, $shifts, $startDate, $endDate) {
+
                 // Hapus hasil lama yang tidak locked
                 DB::table('simulate_schedules')
                     ->where('plan_id', $planId)
-                    // ->where('is_locked', 0)
+                    ->where('is_locked', 0)
                     ->delete();
 
-                // Insert baris baru
-                $now = Carbon::now();
-                $rows = [];
+                $now = \Carbon\Carbon::now();
+
+                // Group assignments by machine_id + date (biar kita packing per bucket)
+                $grouped = [];
                 foreach ($result['assignments'] as $a) {
-                    $machineId = (int) $a['machine_id'];
-                    $date = $a['date'];
-                    $minutes = (int) $a['minutes'];
-
-                    // Tentukan jam mulai default = earliest shift machine (kalau ada) else 08:00
-                    $shiftList = $shifts->get($machineId, collect());
-                    $startTime = '08:00:00';
-                    if ($shiftList && $shiftList->count() > 0) {
-                        $earliest = $shiftList->sortBy('start_time')->first();
-                        $startTime = $earliest->start_time;
-                    }
-                    $startDT = Carbon::parse($date . ' ' . $startTime);
-                    $endDT = (clone $startDT)->addMinutes($minutes);
-
-                    $rows[] = [
-                        'plan_id' => $planId,
-                        'co_product_id' => (int) ($a['co_product_id'] ?? null),
-                        'process_id' => null, // opsional: isi via join operations.process_id jika perlu
-                        'machine_id' => $machineId,
-                        'operation_id' => (int) ($a['operation_id'] ?? null),
-                        'previous_schedule_id' => null,
-                        'process_dependency_id' => null,
-                        'is_start_process' => ($a['op_index'] ?? 0) === 0 ? 1 : 0,
-                        'is_final_process' => 0,
-                        'quantity' => 0,
-                        'plan_speed' => 0,
-                        'conversion_value' => null,
-                        'plan_duration' => $minutes,
-                        'duration' => $minutes,
-                        'start_time' => $startDT->toDateTimeString(),
-                        'end_time' => $endDT->toDateTimeString(),
-                        'shift_id' => null,
-                        'is_overtime' => 0,
-                        'adjusted_start' => null,
-                        'adjusted_end' => null,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
+                    $key = $a['machine_id'] . '|' . $a['date'];
+                    $grouped[$key][] = $a;
                 }
 
-                if (!empty($rows)) {
-                    // Bulk insert batched
-                    foreach (array_chunk($rows, 500) as $chunk) {
-                        DB::table('simulate_schedules')->insert($chunk);
+                foreach ($grouped as $key => $assigns) {
+                    [$machineIdStr, $date] = explode('|', $key);
+                    $machineId = (int) $machineIdStr;
+
+                    // 1) Bangun windows shift untuk hari itu
+                    $windows = $this->buildShiftWindowsForDay($machineId, $date, $shifts);
+
+                    // kalau tidak ada shift, lewati
+                    if (empty($windows))
+                        continue;
+
+                    // 2) Ambil interval occupied: schedules real + simulate locked (hari itu)
+                    $busy = $this->getBusyIntervalsForDay($machineId, $date);
+
+                    // 3) Hitung free windows = windows - busy
+                    $free = $this->subtractIntervals($windows, $busy); // array of [startDT, endDT]
+
+                    // 4) Urutkan assignment (heuristik sederhana: by op_index lalu by co_product_id)
+                    usort($assigns, function ($x, $y) {
+                        return ($x['op_index'] <=> $y['op_index']) ?: (($x['co_product_id'] ?? 0) <=> ($y['co_product_id'] ?? 0));
+                    });
+
+                    // 5) Place tiap assignment ke free slots (split bila perlu)
+                    foreach ($assigns as $a) {
+                        $remain = (int) $a['minutes'];
+
+                        // recompute free dari windows - busy setiap kali mulai place assignment ini
+                        $free = $this->subtractIntervals($windows, $busy);
+
+                        while ($remain > 0 && !empty($free)) {
+                            // ambil slot pertama
+                            [$fs, $fe] = $free[0];
+                            $slotMins = \Carbon\Carbon::parse($fs)->diffInMinutes(\Carbon\Carbon::parse($fe));
+                            if ($slotMins <= 0) {
+                                array_shift($free);
+                                continue;
+                            }
+
+                            $use = min($remain, $slotMins);
+                            $startDT = \Carbon\Carbon::parse($fs);
+                            $endDT = (clone $startDT)->addMinutes($use);
+
+                            // simpan 1 row
+                            DB::table('simulate_schedules')->insert([
+                                [
+                                    'plan_id' => $planId,
+                                    'co_product_id' => (int) ($a['co_product_id'] ?? null),
+                                    'process_id' => null, // TODO: isi kalau perlu
+                                    'machine_id' => (int) $a['machine_id'],
+                                    'operation_id' => (int) ($a['operation_id'] ?? null),
+                                    'previous_schedule_id' => null,
+                                    'process_dependency_id' => null,
+                                    'is_start_process' => ($a['op_index'] ?? 0) === 0 ? 1 : 0,
+                                    'is_final_process' => 0,
+                                    'quantity' => 0,
+                                    'plan_speed' => 0,
+                                    'conversion_value' => null,
+                                    'plan_duration' => $use,
+                                    'duration' => $use,
+                                    'start_time' => $startDT->toDateTimeString(),
+                                    'end_time' => $endDT->toDateTimeString(),
+                                    'shift_id' => null,
+                                    'is_overtime' => 0,
+                                    'adjusted_start' => null,
+                                    'adjusted_end' => null,
+                                    'created_at' => $now,
+                                    'updated_at' => $now,
+                                ]
+                            ]);
+
+                            // Update BUSY dgn interval baru yg barusan dipakai → union
+                            $busy = $this->normalizeIntervals(array_merge($busy, [
+                                [$startDT->toDateTimeString(), $endDT->toDateTimeString()]
+                            ]));
+
+                            // Recompute FREE utk sisa menit assignment ini
+                            $free = $this->subtractIntervals($windows, $busy);
+
+                            $remain -= $use;
+                        }
+
+                        // Jika masih ada sisa 'remain' > 0 → tidak ada slot lagi di hari tsb.
+                        // Kamu bisa logging/notice di sini kalau perlu.
                     }
+
                 }
             });
         }
 
-        return redirect()->route('plan-simulate.show', $planId)
-            ->with('success', 'Plan berhasil digenerate!');
+        return response()->json([
+            'status' => $result['status'] ?? 'UNKNOWN',
+            'kpi' => $result['job_kpi'] ?? [],
+            'machine_load' => $result['machine_load'] ?? [],
+            'assignments' => $result['assignments'] ?? [],
+            'plan_id' => $planId,
+            'payload_sample' => $req->boolean('with_payload', false) ? $payload : null,
+        ]);
+
+        // return redirect()->route('plan-simulate.show', $planId)
+        //     ->with('success', 'Plan berhasil digenerate!');
     }
 
     /* ===================== Helpers ===================== */
@@ -419,4 +535,230 @@ class PlanGeneratorController extends Controller
         }
         return $out;
     }
+
+    /**
+     * Bangun daftar window shift (startDT, endDT) untuk 1 mesin di 1 tanggal.
+     * Menggunakan daftar shift aktif (jam tanpa tanggal) lalu ditempel ke tanggal itu.
+     */
+    // private function buildShiftWindowsForDay(int $machineId, string $date, $shifts): array
+    // {
+    //     $list = [];
+    //     $shiftList = $shifts->get($machineId, collect());
+    //     if (!$shiftList || $shiftList->count() === 0) {
+    //         // fallback: satu window 08:00-17:00
+    //         $list[] = [$date . ' 08:00:00', $date . ' 17:00:00'];
+    //         return $list;
+    //     }
+    //     foreach ($shiftList as $s) {
+    //         $startDT = \Carbon\Carbon::parse($date . ' ' . $s->start_time);
+    //         $endDT = \Carbon\Carbon::parse($date . ' ' . $s->end_time);
+    //         if ($endDT->lessThanOrEqualTo($startDT)) {
+    //             $endDT->addDay(); // overnight shift
+    //         }
+    //         // clamp agar tetap di hari "date" (kalau overnight, pakai sampai 23:59:59)
+    //         $dayEnd = \Carbon\Carbon::parse($date . ' 23:59:59');
+    //         if ($startDT->greaterThan($dayEnd))
+    //             continue;
+    //         if ($endDT->greaterThan($dayEnd))
+    //             $endDT = $dayEnd;
+    //         $list[] = [$startDT->toDateTimeString(), $endDT->toDateTimeString()];
+    //     }
+    //     // sort
+    //     usort($list, fn($a, $b) => strcmp($a[0], $b[0]));
+    //     return $list;
+    // }
+
+    /**
+     * Ambil interval occupied (startDT, endDT) dari schedules + simulate_schedules(locked) pada hari tsb.
+     * Interval dipotong supaya tidak keluar dari boundary tanggal.
+     */
+    private function getBusyIntervalsForDay(int $machineId, string $date): array
+    {
+        $startDay = \Carbon\Carbon::parse($date . ' 00:00:00');
+        $endDay = \Carbon\Carbon::parse($date . ' 23:59:59');
+
+        $rows = DB::table('schedules')
+            ->where('machine_id', $machineId)
+            ->whereNotNull('start_time')->whereNotNull('end_time')
+            ->where('end_time', '>=', $startDay)
+            ->where('start_time', '<=', $endDay)
+            ->select('start_time', 'end_time')
+            ->get();
+
+        $locks = DB::table('simulate_schedules')
+            ->where('machine_id', $machineId)
+            ->where('is_locked', 1)
+            ->whereNotNull('start_time')->whereNotNull('end_time')
+            ->where('end_time', '>=', $startDay)
+            ->where('start_time', '<=', $endDay)
+            ->select('start_time', 'end_time')
+            ->get();
+
+        $busy = [];
+        foreach ($rows->concat($locks) as $r) {
+            $s = \Carbon\Carbon::parse($r->start_time);
+            $e = \Carbon\Carbon::parse($r->end_time);
+            if ($e->lt($startDay) || $s->gt($endDay))
+                continue;
+            if ($s->lt($startDay))
+                $s = $startDay->copy();
+            if ($e->gt($endDay))
+                $e = $endDay->copy();
+            if ($e->gt($s)) {
+                $busy[] = [$s->toDateTimeString(), $e->toDateTimeString()];
+            }
+        }
+
+        // merge overlap
+        if (!empty($busy)) {
+            usort($busy, fn($a, $b) => strcmp($a[0], $b[0]));
+            $merged = [];
+            [$cs, $ce] = $busy[0];
+            for ($i = 1; $i < count($busy); $i++) {
+                [$ns, $ne] = $busy[$i];
+                if ($ns <= $ce) {
+                    if ($ne > $ce)
+                        $ce = $ne;
+                } else {
+                    $merged[] = [$cs, $ce];
+                    [$cs, $ce] = [$ns, $ne];
+                }
+            }
+            $merged[] = [$cs, $ce];
+            $busy = $merged;
+        }
+
+        // return $busy;
+        return $this->normalizeIntervals($busy);
+    }
+
+    /**
+     * Kurangi windows dengan busy => hasilkan free slots (tanpa overlap).
+     * windows & busy: array of [startDT, endDT] sorted.
+     */
+    private function subtractIntervals(array $windows, array $busy): array
+    {
+        // Pastikan windows dan busy sudah terurut
+        usort($windows, fn($a, $b) => strcmp($a[0], $b[0]));
+        usort($busy, fn($a, $b) => strcmp($a[0], $b[0]));
+
+        $free = [];
+        foreach ($windows as [$ws, $we]) {
+            $curS = \Carbon\Carbon::parse($ws);
+            $curE = \Carbon\Carbon::parse($we);
+            $cursor = $curS->copy();
+
+            foreach ($busy as [$bs, $be]) {
+                $bS = \Carbon\Carbon::parse($bs);
+                $bE = \Carbon\Carbon::parse($be);
+
+                // jika busy di luar window ini, lewati
+                if ($bE <= $cursor || $bS >= $curE)
+                    continue;
+
+                // free sebelum busy
+                if ($bS > $cursor) {
+                    $free[] = [$cursor->toDateTimeString(), $bS->toDateTimeString()];
+                }
+
+                // geser cursor setelah busy
+                if ($bE > $cursor) {
+                    $cursor = $bE->copy();
+                    if ($cursor >= $curE)
+                        break; // habis window
+                }
+            }
+
+            // sisa free setelah semua busy
+            if ($cursor < $curE) {
+                $free[] = [$cursor->toDateTimeString(), $curE->toDateTimeString()];
+            }
+        }
+
+        // buang slot <=0 menit
+        $free = array_values(array_filter($free, function ($slot) {
+            $s = \Carbon\Carbon::parse($slot[0]);
+            $e = \Carbon\Carbon::parse($slot[1]);
+            return $e->gt($s);
+        }));
+
+        return $free;
+    }
+
+    private function buildShiftWindowsForDay(int $machineId, string $date, $shifts): array
+    {
+        $intervals = [];
+
+        // 1) Shift windows
+        $shiftList = $shifts->get($machineId, collect());
+        if ($shiftList && $shiftList->count() > 0) {
+            foreach ($shiftList as $s) {
+                $startDT = \Carbon\Carbon::parse($date . ' ' . $s->start_time);
+                $endDT = \Carbon\Carbon::parse($date . ' ' . $s->end_time);
+                if ($endDT->lessThanOrEqualTo($startDT)) {
+                    $endDT->addDay();
+                } // overnight
+                // Clamp ke hari tsb
+                $dayStart = \Carbon\Carbon::parse($date . ' 00:00:00');
+                $dayEnd = \Carbon\Carbon::parse($date . ' 23:59:59');
+                if ($startDT < $dayStart)
+                    $startDT = $dayStart;
+                if ($endDT > $dayEnd)
+                    $endDT = $dayEnd;
+                if ($endDT > $startDT) {
+                    $intervals[] = [$startDT->toDateTimeString(), $endDT->toDateTimeString()];
+                }
+            }
+        } else {
+            // fallback kalau belum ada shift terset: 08:00-17:00
+            $intervals[] = [$date . ' 08:00:00', $date . ' 17:00:00'];
+        }
+
+        // 2) Tambahkan overtime windows (jika ada) → union dengan shift
+        $ots = DB::table('overtimes')
+            ->where('machine_id', $machineId)
+            ->where('date', $date)
+            ->get();
+        foreach ($ots as $ot) {
+            $startDT = \Carbon\Carbon::parse($date . ' ' . $ot->start_time);
+            $endDT = \Carbon\Carbon::parse($date . ' ' . $ot->end_time);
+            if ($endDT->lessThanOrEqualTo($startDT)) {
+                $endDT->addDay();
+            }
+            $dayStart = \Carbon\Carbon::parse($date . ' 00:00:00');
+            $dayEnd = \Carbon\Carbon::parse($date . ' 23:59:59');
+            if ($startDT < $dayStart)
+                $startDT = $dayStart;
+            if ($endDT > $dayEnd)
+                $endDT = $dayEnd;
+            if ($endDT > $startDT) {
+                $intervals[] = [$startDT->toDateTimeString(), $endDT->toDateTimeString()];
+            }
+        }
+
+        // 3) Union/merge agar tak ada overlap di windows
+        return $this->normalizeIntervals($intervals);
+    }
+    private function normalizeIntervals(array $intervals): array
+    {
+        if (empty($intervals))
+            return [];
+        usort($intervals, fn($a, $b) => strcmp($a[0], $b[0]));
+        $out = [];
+        [$cs, $ce] = $intervals[0];
+        for ($i = 1; $i < count($intervals); $i++) {
+            [$ns, $ne] = $intervals[$i];
+            if ($ns <= $ce) {
+                if ($ne > $ce) {
+                    $ce = $ne;
+                }
+            } else {
+                $out[] = [$cs, $ce];
+                [$cs, $ce] = [$ns, $ne];
+            }
+        }
+        $out[] = [$cs, $ce];
+        return $out;
+    }
+
 }

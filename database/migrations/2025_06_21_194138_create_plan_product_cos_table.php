@@ -17,6 +17,7 @@ return new class extends Migration
             // $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
             // $table->foreignId('co_id')->nullable()->constrained('cos')->onDelete('cascade');
             $table->foreignId('co_product_id')->nullable()->constrained('co_products')->onDelete('cascade');
+            $table->boolean('is_locked')->default(false);
             $table->dateTime('shipment_date')->nullable();
             $table->timestamps();
         });
