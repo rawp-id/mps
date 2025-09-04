@@ -752,16 +752,16 @@ class PlanSimulateController extends Controller
 
     public function generatePlan(Request $request, $planId)
     {
-        $locked = $request->input('locked', []);
+        // $locked = $request->input('locked', []);
 
-        $idsToLock = array_map('intval', array_keys($locked));
+        // $idsToLock = array_map('intval', array_keys($locked));
 
 
-        if (!empty($idsToLock)) {
-            PlanProductCo::where('plan_id', $planId)
-                ->whereIn('id', $idsToLock)
-                ->update(['is_locked' => true]);
-        }
+        // if (!empty($idsToLock)) {
+        //     PlanProductCo::where('plan_id', $planId)
+        //         ->whereIn('id', $idsToLock)
+        //         ->update(['is_locked' => true]);
+        // }
 
         $plan = Plan::with('planProductCos', 'planProductCos.co')->findOrFail($planId);
 

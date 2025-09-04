@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PlanGeneratorController;
+use App\Http\Controllers\PlanProductCoController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ScheduleController;
@@ -64,6 +65,8 @@ Route::patch('reports/{id}/update-process-status', [\App\Http\Controllers\Report
 Route::patch('reports/{id}/update-is-completed', [\App\Http\Controllers\ReportController::class, 'updateIsCompleted'])->name('reports.updateIsCompleted');
 
 Route::get('apply-schedule/{plan}', [PlanSimulateController::class, 'applyToSchedule'])->name('apply.schedule');
+
+Route::patch('plan-product-co/{planProductCo}/update-lock-status/{is_locked}', [PlanProductCoController::class, 'updateLockStatus'])->name('plan-product-co.updateLockStatus');
 
 Route::resource('products', ProductController::class);
 Route::resource('machines', \App\Http\Controllers\MachineController::class);
