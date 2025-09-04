@@ -95,7 +95,7 @@ class PlanSimulateController extends Controller
             'products'   => $productsPayload,
         ];
 
-        dd($datas);
+        // dd($datas);
 
         try {
             try {
@@ -767,6 +767,7 @@ class PlanSimulateController extends Controller
 
         // >>> PANGGIL METHOD BARU (V2) YANG BAWA co_id + is_locked <<<
         $generate = $this->generateSimulationSchedule($plan->planProductCos, $plan->start_time);
+        // dd($generate);
 
         // dd($generate);
         // simpan hasil
@@ -778,7 +779,7 @@ class PlanSimulateController extends Controller
             //     ]);
 
             SimulateSchedule::create([
-                // 'plan_id'          => $plan->id,
+                'plan_id'          => $plan->id,
                 'co_product_id'    => $schedule->co_product_id ?? null,
                 'operation_id'     => $schedule->operation_id ?? null,
                 'quantity'         => $schedule->quantity ?? 0,
