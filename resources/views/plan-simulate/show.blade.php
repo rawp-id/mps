@@ -120,10 +120,10 @@
                 <tr>
                     <th>CO Name</th>
                     <th>Product Name</th>
-                    <th>Locked</th>
                     @if (!empty($plan->planProductCos->first()->shipment_date))
                         <th>Shipment Date</th>
                     @endif
+                    <th>Locked</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -137,8 +137,9 @@
                         @endif
                         <td>
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="locked[{{ $planProductCo->id }}]"
-                                    value="1" form="generateForm">
+                                <input class="form-check-input" type="checkbox"
+                                    {{ $planProductCo->is_locked ? 'checked' : '' }}
+                                    onchange="updateLockStatus({{ $planProductCo->id }}, this.checked ? 1 : 0)">
                             </div>
                         </td>
                         <td>
@@ -268,6 +269,22 @@
             </div>
 
             <script>
+                function updateLockStatus(id, isLocked) {
+                    fetch(`{{ url('plan-product-co') }}/${id}/update-lock-status/${isLocked}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to update lock status');
+                        })
+                        .catch(error => {
+                            alert('Error updating lock status: ' + error.message);
+                        });
+                }
+
                 document.addEventListener('DOMContentLoaded', function() {
                     // Apply filter
                     document.getElementById('applyFilterBtn').addEventListener('click', function() {
