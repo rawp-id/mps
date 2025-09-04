@@ -9,7 +9,7 @@
             <a href="{{ route('plan-simulate.edit', $plan->id) }}" class="btn btn-warning me-2">Edit</a>
             <form id="generateForm" action="{{ route('plan-simulate.generate', $plan->id) }}" method="POST">
                 @csrf
-                <input type="hidden" name="plan_id" value="{{ $plan->id }}">
+                {{-- <input type="hidden" name="plan_id" value="{{ $plan->id }}"> --}}
                 <button type="submit" class="btn btn-info me-2">Generate</button>
             </form>
             <a href="{{ route('apply.schedule', $plan->id) }}" class="btn btn-primary me-2">Apply To Schedule</a>
