@@ -23,15 +23,17 @@ class PlanSimulateController extends Controller
         // Kumpulkan mapping product_id -> (co_id, is_locked) dari planProductCos
         $entries = collect($planProductCos)->map(function ($ppc) {
             return [
-                'product_id' => optional($ppc->co)->product_id,
-                'co_id'      => optional($ppc->co)->id,
-                'is_locked'  => (bool) (optional($ppc->co)->is_locked ?? false),
+                'plan_id'       => (int) ($ppc->plan_id ?? 0),
+                'co_product_id' => (int) ($ppc->co_product_id ?? 0), // <-- langsung field, bukan relasi
+                'is_locked'     => (bool) ($ppc->is_locked ?? false), // <-- juga langsung field
             ];
-        })->filter(fn($e) => !empty($e['product_id']) && !empty($e['co_id']))->values();
+        })->filter(fn($e) => !empty($e['co_product_id']) && !empty($e['plan_id']))
+            ->values();
 
-        // Ambil produk dari DB berdasarkan product_id di entries
-        $productIds = $entries->pluck('product_id')->unique()->values()->all();
-        $products = Product::whereIn('id', $productIds)->orderBy('shipping_date')->get()->keyBy('id');
+        // Ambil produk dari DB berdasarkan co_product_id di entries
+        $coProductIds = $entries->pluck('co_product_id')->unique()->values()->all();
+        $productIds = CoProduct::whereIn('id', $coProductIds)->pluck('product_id')->unique()->values()->all();
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         $urlLocal = 'http://localhost:5000/schedule';
         $url      = 'http://202.58.200.244:5000/schedule';
@@ -45,18 +47,15 @@ class PlanSimulateController extends Controller
         $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
 
         // Gabungkan co info per product
-        $byProduct = $entries->groupBy('product_id')->map(function ($rows) {
+        $byProduct = $entries->groupBy('co_product_id')->map(function ($rows) {
             $row = collect($rows)->first();
             return [
-                'co_id'     => (int) $row['co_id'],
+                'co_product_id'     => (int) $row['co_product_id'],
                 'is_locked' => (bool) $row['is_locked'],
             ];
         });
 
-        // Optional body-level locked map { "co_id": 0/1 } untuk Python
-        $locksMap = $entries->mapWithKeys(fn($e) => [
-            (string) (int) $e['co_id'] => (int) $e['is_locked']
-        ])->toArray();
+        // dd($entries, $byProduct);
 
         $productsPayload = [];
         foreach ($byProduct as $pid => $coInfo) {
@@ -73,7 +72,7 @@ class PlanSimulateController extends Controller
                 $opId = (int) trim($opId);
                 if ($opId && isset($operations[$opId])) {
                     $duration = (int) ($operations[$opId]->duration ?? 0);
-                    $tasks[] = [$opId, $duration, (bool) $coInfo['is_locked']];
+                    $tasks[] = [$opId, $duration];
                 }
             }
 
@@ -81,18 +80,22 @@ class PlanSimulateController extends Controller
 
             $productsPayload[] = [
                 'id'                => (int) $p->id,
+                'co_product_id'     => (int) $pid,
                 'name'              => (string) $p->name,
                 'shipment_deadline' => Carbon::parse($shipmentDeadline)->format('Y-m-d H:i'),
+                'locked'         => (bool) ($coInfo['is_locked'] ?? false),
                 'tasks'             => $tasks,
             ];
         }
+
+        // dd($productsPayload);
 
         $datas = [
             'start_time' => $startCarbon->format('Y-m-d H:i'),
             'products'   => $productsPayload,
         ];
 
-        // dd($datas);
+        dd($datas);
 
         try {
             try {
@@ -751,25 +754,16 @@ class PlanSimulateController extends Controller
     {
         $locked = $request->input('locked', []);
 
-        // normalkan map locked dari request (opsional)
-        $lockedNorm = [];
-        foreach ($locked as $k => $v) {
-            $lockedNorm[(int) $k] = (int) $v;
+        $idsToLock = array_map('intval', array_keys($locked));
+
+
+        if (!empty($idsToLock)) {
+            PlanProductCo::where('plan_id', $planId)
+                ->whereIn('id', $idsToLock)
+                ->update(['is_locked' => true]);
         }
 
         $plan = Plan::with('planProductCos', 'planProductCos.co')->findOrFail($planId);
-
-        // suntikkan is_locked ke CO
-        $plan->planProductCos->transform(function ($ppc) use ($lockedNorm) {
-            if ($ppc->co) {
-                $coId = (int) $ppc->co->id;
-                $ppc->co->setAttribute(
-                    'is_locked',
-                    array_key_exists($coId, $lockedNorm) ? (bool) $lockedNorm[$coId] : (bool) ($ppc->co->is_locked ?? false)
-                );
-            }
-            return $ppc;
-        });
 
         // >>> PANGGIL METHOD BARU (V2) YANG BAWA co_id + is_locked <<<
         $generate = $this->generateSimulationSchedule($plan->planProductCos, $plan->start_time);
@@ -782,7 +776,7 @@ class PlanSimulateController extends Controller
             //     ->update([
             //         'shipment_date' => $schedule->shipment_date ?? null,
             //     ]);
-            
+
             SimulateSchedule::create([
                 // 'plan_id'          => $plan->id,
                 'co_product_id'    => $schedule->co_product_id ?? null,
