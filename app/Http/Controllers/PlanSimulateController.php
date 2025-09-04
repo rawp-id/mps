@@ -777,14 +777,14 @@ class PlanSimulateController extends Controller
         // dd($generate);
         // simpan hasil
         foreach ($generate->tasks ?? [] as $schedule) {
-            CoProduct::where('plan_id', $plan->id)
-                ->where('co_product_id', $schedule->co_product_id ?? null)
-                ->update([
-                    'shipment_date' => $schedule->shipment_date ?? null,
-                ]);
+            // CoProduct::where('plan_id', $plan->id)
+            //     ->where('co_product_id', $schedule->co_product_id ?? null)
+            //     ->update([
+            //         'shipment_date' => $schedule->shipment_date ?? null,
+            //     ]);
             
             SimulateSchedule::create([
-                'plan_id'          => $plan->id,
+                // 'plan_id'          => $plan->id,
                 'co_product_id'    => $schedule->co_product_id ?? null,
                 'operation_id'     => $schedule->operation_id ?? null,
                 'quantity'         => $schedule->quantity ?? 0,
