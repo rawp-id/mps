@@ -28,15 +28,20 @@ Route::get('schedules/{coProductId}/coProduct', [ScheduleController::class, 'sho
 
 Route::resource('schedules/calender', ScheduleController::class);
 
-Route::get('/plan-simulate', [PlanSimulateController::class, 'index'])->name('plan-simulate.index');
-Route::get('/plan-simulate/create', [PlanSimulateController::class, 'create'])->name('plan-simulate.create');
-Route::post('/plan-simulate', [PlanSimulateController::class, 'store'])->name('plan-simulate.store');
-Route::delete('/plan-simulate/{plan}', [PlanSimulateController::class, 'destroy'])->name('plan-simulate.destroy');
-Route::get('/plan-simulate/{plan}/edit', [PlanSimulateController::class, 'edit'])->name('plan-simulate.edit');
-Route::get('/plan-simulate/{plan}/show', [PlanSimulateController::class, 'show'])->name('plan-simulate.show');
+// Route::get('/plan-simulate', [PlanSimulateController::class, 'index'])->name('plan-simulate.index');
+// Route::get('/plan-simulate/create', [PlanSimulateController::class, 'create'])->name('plan-simulate.create');
+// Route::post('/plan-simulate', [PlanSimulateController::class, 'store'])->name('plan-simulate.store');
+// Route::delete('/plan-simulate/{plan}', [PlanSimulateController::class, 'destroy'])->name('plan-simulate.destroy');
+// Route::get('/plan-simulate/{plan}/edit', [PlanSimulateController::class, 'edit'])->name('plan-simulate.edit');
+// Route::get('/plan-simulate/{plan}/show', [PlanSimulateController::class, 'show'])->name('plan-simulate.show');
+// Route::post('/plan-simulate/{plan}/add/co', [PlanSimulateController::class, 'addCoToPlan'])->name('plan-simulate.addCoToPlan');
+// Route::delete('/plan-simulate/co/{id}', [PlanSimulateController::class, 'destroyCoFromPlan'])->name('plan-simulate.destroyCoFromPlan');
+// // Route::post('/plan-simulate/generate', [PlanGeneratorController::class, 'generate'])->name('plan-simulate.generate');
+// Route::post('/plan-simulate/{plan}/generate', [PlanSimulateController::class, 'generatePlan'])->name('plan-simulate.generate');
+
+Route::resource('plan-simulate', PlanSimulateController::class);
 Route::post('/plan-simulate/{plan}/add/co', [PlanSimulateController::class, 'addCoToPlan'])->name('plan-simulate.addCoToPlan');
 Route::delete('/plan-simulate/co/{id}', [PlanSimulateController::class, 'destroyCoFromPlan'])->name('plan-simulate.destroyCoFromPlan');
-// Route::post('/plan-simulate/generate', [PlanGeneratorController::class, 'generate'])->name('plan-simulate.generate');
 Route::post('/plan-simulate/{plan}/generate', [PlanSimulateController::class, 'generatePlan'])->name('plan-simulate.generate');
 
 // Import routes
