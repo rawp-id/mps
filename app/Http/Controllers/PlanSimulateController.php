@@ -652,6 +652,20 @@ class PlanSimulateController extends Controller
         $machines = Machine::all();
         $processes = Process::all();
 
+        dd(
+            $plan,
+            $products,
+            $cos,
+            $schedules,
+            $machines,
+            $processes,
+            $startDate,
+            $endDate,
+            $category,
+            $machineId,
+            $processId
+        );
+
         return view('plan-simulate.show', compact(
             'plan',
             'schedules',
