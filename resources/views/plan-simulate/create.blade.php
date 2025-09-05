@@ -78,36 +78,43 @@
                         <tr>
                             <th style="width:40px"></th>
                             {{-- <th>Code</th> --}}
-                            <th>Product</th>
-                            <th>Description</th>
                             <th>CO</th>
+                            <th>Product</th>
+                            {{-- <th>Description</th> --}}
+                            <th>Shipment Date</th>
+                            <th>CO User</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($cos as $co)
-                            <tr class="{{ collect(old('co_ids'))->contains($co->id) ? 'table-success' : '' }}">
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="co_ids[]"
-                                            value="{{ $co->id }}" id="co_{{ $co->id }}"
-                                            {{ collect(old('co_ids'))->contains($co->id) ? 'checked' : '' }}
-                                            onchange="this.closest('tr').classList.toggle('table-success', this.checked)">
-                                        @foreach ($co->coProducts as $coProduct)
-                                            <label class="form-check-label" for="co_{{ $co->id }}"
-                                                data-product="{{ strtolower($coProduct->product->name ?? '') }}">
-                                                ({{ $co->code }})
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </td>
-                                <td>
-                                    @foreach ($co->coProducts as $coProduct)
-                                        <div>{{ $coProduct->product->name }}</div>
-                                    @endforeach
-                                </td>
-                                <td>{{ $co->description }}</td>
-                                <td>{{ $co->co_user }}</td>
-                            </tr>
+                        @foreach ($products as $product)
+                            @foreach ($product->coProducts as $coProduct)
+                                <tr
+                                    class="{{ collect(old('co_product_ids'))->contains($product->id) ? 'table-success' : '' }}">
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="co_product_ids[]"
+                                                value="{{ $coProduct->id }}" id="product_{{ $coProduct->id }}"
+                                                {{ collect(old('co_product_ids'))->contains($product->coProducts->first()->id ?? '') ? 'checked' : '' }}
+                                                onchange="this.closest('tr').classList.toggle('table-success', this.checked)">
+                                            {{-- <label class="form-check-label" for="product_{{ $product->id }}">
+                                                ({{ $product->code }})
+                                            </label> --}}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{-- @dd($coProduct->co->code) --}}
+                                        <div>{{ $coProduct->co->code }}</div>
+                                    </td>
+                                    <td>{{ $product->name }}</td>
+                                    {{-- <td>{{ $product->description }}</td> --}}
+                                    <td>
+                                        <div>{{ $coProduct->shipment_date }}</div>
+                                    </td>
+                                    <td>
+                                        <div>{{ $coProduct->co->co_user }}</div>
+                                    </td>
+                                </tr>
+                            @endforeach
                         @endforeach
                     </tbody>
                 </table>

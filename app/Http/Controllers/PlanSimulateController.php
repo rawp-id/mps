@@ -161,19 +161,18 @@ class PlanSimulateController extends Controller
             // 1. Buat Plan
             $plan = Plan::create($request->all());
 
-            foreach ($request->input('co_ids', []) as $coId) {
+            foreach ($request->input('co_product_ids', []) as $productId) {
                 $plan->planProductCos()->create([
                     'plan_id' => $plan->id,
-                    'product_id' => null,
-                    'co_id' => $coId,
+                    'co_product_id' => $productId,
                 ]);
             }
 
             // dd($plan->planProductCos());
 
-            $coIds = $request->input('co_ids', []);
+            $coIds = $request->input('co_product_ids', []);
 
-            $cos = Co::whereIn('id', $coIds)
+            $cos = CoProduct::whereIn('id', $coIds)
                 ->get();
 
             // dd($products);
