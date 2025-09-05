@@ -1,0 +1,7 @@
+{
+    "config": {
+        "worker": {
+            "public_dir": "public"
+        }
+    }
+}
