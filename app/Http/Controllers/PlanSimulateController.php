@@ -652,7 +652,26 @@ class PlanSimulateController extends Controller
             $schedulesQuery->whereHas('operation', fn($q) => $q->where('process_id', $processId));
         }
 
-        $schedules = $schedulesQuery->orderBy('start_time', 'asc')->get();
+        // $schedules = $schedulesQuery->orderBy('start_time', 'asc')->get();
+        $schedules = $schedulesQuery->with([
+            'coProduct.product',
+            'coProduct.co'
+        ])->get()->map(function ($s) {
+            return [
+                'id' => $s->id,
+                'start_time' => $s->start_time,
+                'end_time' => $s->end_time,
+                'duration' => $s->duration,
+                'plan_duration' => $s->plan_duration,
+                'locked' => $s->locked,
+                'co_product' => [
+                    'product' => $s->coProduct->product ?? null,
+                    'co' => $s->coProduct->co ?? null,
+                ],
+                'machine' => $s->machine,
+                'operation' => $s->operation,
+            ];
+        });
 
         $machines = Machine::all();
         $processes = Process::all();

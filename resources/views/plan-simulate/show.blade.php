@@ -71,7 +71,7 @@
                                                     </td>
                                                     <td>
                                                         @foreach ($co->coProducts as $prod)
-                                                            <div>{{ $prod->product->name }}</div>
+                                                            <div>{{ $prod->product->name ?? '-' }}</div>
                                                         @endforeach
                                                     </td>
                                                     <td>{{ $co->description }}</td>
@@ -130,8 +130,8 @@
             <tbody>
                 @foreach ($plan->planProductCos as $planProductCo)
                     <tr>
-                        <td>{{ $planProductCo->coProduct->co->name }}</td>
-                        <td>{{ $planProductCo->coProduct->product->name }}</td>
+                        <td>{{ $planProductCo->coProduct->co->name ?? '-' }}</td>
+                        <td>{{ $planProductCo->coProduct->product->name ?? '-' }}</td>
                         @if (!empty($planProductCo->shipment_date))
                             <td>{{ $planProductCo->shipment_date }}</td>
                         @endif
@@ -342,7 +342,7 @@
             const productMap = new Map();
             schedules.forEach(s => {
                 const id = s.co_product.product ? parseInt(s.co_product.product.id) : 0;
-                let name = '';
+                name = s.co_product.product?.name ?? 'Unknown Product';
 
                 // Ambil parameter dari URL
                 const urlParams = new URLSearchParams(window.location.search);
