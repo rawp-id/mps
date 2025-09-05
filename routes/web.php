@@ -39,10 +39,13 @@ Route::resource('schedules/calender', ScheduleController::class);
 // // Route::post('/plan-simulate/generate', [PlanGeneratorController::class, 'generate'])->name('plan-simulate.generate');
 // Route::post('/plan-simulate/{plan}/generate', [PlanSimulateController::class, 'generatePlan'])->name('plan-simulate.generate');
 
-Route::post('/plan-simulate/{plan}/add/co', [PlanSimulateController::class, 'addCoToPlan'])->name('plan-simulate.addCoToPlan');
+Route::post('/plan-simulate/{plan_simulate}/add/co', [PlanSimulateController::class, 'addCoToPlan'])->name('plan-simulate.addCoToPlan');
 Route::delete('/plan-simulate/co/{id}', [PlanSimulateController::class, 'destroyCoFromPlan'])->name('plan-simulate.destroyCoFromPlan');
-Route::post('/plan-simulate/{plan}/generate', [PlanSimulateController::class, 'generatePlan'])->name('plan-simulate.generate');
-Route::resource('plan-simulate', PlanSimulateController::class);
+Route::post('/plan-simulate/{plan_simulate}/generate', [PlanSimulateController::class, 'generatePlan'])->name('plan-simulate.generate');
+Route::resource('plan-simulate', PlanSimulateController::class)->parameters([
+    'plan-simulate' => 'plan'
+]);
+
 
 // Import routes
 Route::get('products/import', [ProductController::class, 'importForm'])->name('products.import');
@@ -64,7 +67,7 @@ route::get('reset', function () {
     return redirect()->back()->with('success', 'Data has been reset successfully.');
 })->name('reset');
 
-Route::get('generate/plan' , [ProductController::class, 'generatePlans'])->name('plan.generate');
+Route::get('generate/plan', [ProductController::class, 'generatePlans'])->name('plan.generate');
 
 Route::patch('reports/{id}/update-process-status', [\App\Http\Controllers\ReportController::class, 'updateProcessStatus'])->name('reports.updateStatus');
 Route::patch('reports/{id}/update-is-completed', [\App\Http\Controllers\ReportController::class, 'updateIsCompleted'])->name('reports.updateIsCompleted');
