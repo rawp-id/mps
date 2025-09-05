@@ -1,55 +1,82 @@
 @extends('layouts.app')
 
-@section('head')
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-@endsection
-
 @section('content')
-    <h2>Edit CO</h2>
+    <h1>Edit CO</h1>
 
     <form action="{{ route('co.update', $co->id) }}" method="POST">
         @csrf
-        @method('PUT')
+        @method('PUT') <!-- Untuk melakukan update -->
 
-        <div class="mb-3">
-            <label for="name" class="form-label">Name</label>
-            <input type="text" class="form-control" id="name" name="name" value="{{ $co->name }}" required>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" name="name" id="name" class="form-control" value="{{ old('name', $co->name) }}" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea name="description" id="description" class="form-control">{{ old('description', $co->description) }}</textarea>
         </div>
 
-        <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <textarea class="form-control" id="description" name="description" required>{{ $co->description }}</textarea>
+        <div id="product_fields">
+            @foreach ($co->coProducts as $key => $coProduct)
+                <div class="form-group" id="product_{{ $key }}">
+                    <label for="co_products">CO Products</label>
+                    <select name="co_products[]" class="form-control" required>
+                        <option value="">Select a product</option>
+                        @foreach ($products as $availableProduct)
+                            <option value="{{ $availableProduct->id }}" @if ($coProduct->product_id == $availableProduct->id) selected @endif>
+                                {{ $availableProduct->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <label for="shipment_date_{{ $key }}">Shipment Date</label>
+                    <input type="date" name="shipment_dates[]" class="form-control"
+                        value="{{ old('shipment_dates.' . $key, $coProduct->shipment_date) }}" required>
+
+                    <!-- Button to remove product -->
+                    <button type="button" class="btn btn-danger mt-2 removeProduct" data-id="product_{{ $key }}">Remove</button>
+                </div>
+            @endforeach
         </div>
 
-        <div class="form-group mb-3">
-            <label for="co_products">CO Products</label>
-            <select name="co_products[]" id="co_products" class="form-control select2" multiple required
-                data-placeholder="Select CO Products">
-                @php
-                    $selectedProducts = old('co_products', $co->coProducts->pluck('product_id')->toArray());
-                @endphp
-
-                @foreach ($products as $product)
-                    <option value="{{ $product->id }}" {{ in_array($product->id, $selectedProducts) ? 'selected' : '' }}>
-                        {{ $product->name }}
-                    </option>
-                @endforeach
-            </select>
+        <div class="d-flex justify-content-end mt-3">
+            <button type="button" id="addProduct" class="btn btn-secondary">Tambah Product</button>
         </div>
 
-        <button type="submit" class="btn btn-primary">Update</button>
-        <a href="{{ route('co.index') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Update CO</button>
     </form>
 @endsection
 
 @section('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('#co_products').select2({
-                placeholder: $('#co_products').data('placeholder'),
-                allowClear: true
+            // Add product input field dynamically
+            $('#addProduct').on('click', function() {
+                var productFieldId = 'product_' + new Date().getTime(); // Unique ID based on timestamp
+                var productField = `
+                    <div class="form-group" id="${productFieldId}">
+                        <label for="co_products">CO Products</label>
+                        <select name="co_products[]" class="form-control" required>
+                            <option value="">Select a product</option>
+                            @foreach ($products as $product)
+                                <option value="{{ $product->id }}">{{ $product->name }}</option>
+                            @endforeach
+                        </select>
+                        <label for="shipment_date_${productFieldId}">Shipment Date</label>
+                        <input type="date" name="shipment_dates[]" class="form-control" required>
+                        
+                        <!-- Button to remove product -->
+                        <button type="button" class="btn btn-danger mt-2 removeProduct" data-id="${productFieldId}">Remove</button>
+                    </div>
+                `;
+                $('#product_fields').append(productField);
+            });
+
+            // Use event delegation for dynamically added remove buttons
+            $(document).on('click', '.removeProduct', function() {
+                var productId = $(this).data('id'); // Get the unique ID of the product field
+                $('#' + productId).remove(); // Remove the selected product field
             });
         });
     </script>
