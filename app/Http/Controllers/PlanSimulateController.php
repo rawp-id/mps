@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Co;
 use App\Models\CoProduct;
+use App\Models\Machine;
 use Carbon\Carbon;
 use App\Models\Plan;
 use App\Models\Product;
 use App\Models\Schedule;
 use App\Models\Operations;
 use App\Models\PlanProductCo;
+use App\Models\Process;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\SimulateSchedule;
@@ -23,9 +25,9 @@ class PlanSimulateController extends Controller
         // Kumpulkan mapping product_id -> (co_id, is_locked) dari planProductCos
         $entries = collect($planProductCos)->map(function ($ppc) {
             return [
-                'plan_id'       => (int) ($ppc->plan_id ?? 0),
+                'plan_id' => (int) ($ppc->plan_id ?? 0),
                 'co_product_id' => (int) ($ppc->co_product_id ?? 0), // <-- langsung field, bukan relasi
-                'is_locked'     => (bool) ($ppc->is_locked ?? false), // <-- juga langsung field
+                'is_locked' => (bool) ($ppc->is_locked ?? false), // <-- juga langsung field
             ];
         })->filter(fn($e) => !empty($e['co_product_id']) && !empty($e['plan_id']))
             ->values();
@@ -36,11 +38,11 @@ class PlanSimulateController extends Controller
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         $urlLocal = 'http://localhost:5000/schedule';
-        $url      = 'http://202.58.200.244:5000/schedule';
+        $url = 'http://202.58.200.244:5000/schedule';
 
         // Tentukan start default bila null
         $firstProduct = $products->first();
-        $startCarbon  = $start
+        $startCarbon = $start
             ? Carbon::parse($start)
             : ($firstProduct ? Carbon::parse($firstProduct->shipping_date)->subDay()->startOfDay() : now());
 
@@ -50,7 +52,7 @@ class PlanSimulateController extends Controller
         $byProduct = $entries->groupBy('co_product_id')->map(function ($rows) {
             $row = collect($rows)->first();
             return [
-                'co_product_id'     => (int) $row['co_product_id'],
+                'co_product_id' => (int) $row['co_product_id'],
                 'is_locked' => (bool) $row['is_locked'],
             ];
         });
@@ -61,7 +63,8 @@ class PlanSimulateController extends Controller
         foreach ($byProduct as $pid => $coInfo) {
             /** @var Product|null $p */
             $p = $products->get($pid);
-            if (!$p) continue;
+            if (!$p)
+                continue;
 
             $operationIds = is_array($p->process_details)
                 ? $p->process_details
@@ -79,12 +82,12 @@ class PlanSimulateController extends Controller
             $shipmentDeadline = $p->shipment_deadline ?? $p->shipping_date;
 
             $productsPayload[] = [
-                'id'                => (int) $p->id,
-                'co_product_id'     => (int) $pid,
-                'name'              => (string) $p->name,
+                'id' => (int) $p->id,
+                'co_product_id' => (int) $pid,
+                'name' => (string) $p->name,
                 'shipment_deadline' => Carbon::parse($shipmentDeadline)->format('Y-m-d H:i'),
-                'locked'         => (bool) ($coInfo['is_locked'] ?? false),
-                'tasks'             => $tasks,
+                'locked' => (bool) ($coInfo['is_locked'] ?? false),
+                'tasks' => $tasks,
             ];
         }
 
@@ -92,7 +95,7 @@ class PlanSimulateController extends Controller
 
         $datas = [
             'start_time' => $startCarbon->format('Y-m-d H:i'),
-            'products'   => $productsPayload,
+            'products' => $productsPayload,
         ];
 
         // dd($datas);
@@ -603,19 +606,19 @@ class PlanSimulateController extends Controller
 
     public function show($plan)
     {
-        $plan = Plan::with('product', 'co', 'planProductCos', 'planProductCos.coProduct.product', 'planProductCos.co')->find($plan);
-        // dd($plan);
-
-        // dd($plan->planProductCos);
+        $plan = Plan::with(
+            'product',
+            'co',
+            'planProductCos',
+            'planProductCos.coProduct.product',
+            'planProductCos.co'
+        )->find($plan);
 
         $products = Product::whereNotIn('id', $plan->planProductCos->pluck('product_id'))->get();
-        // dd($products);
+        $cos = Co::with('coProducts.product')
+            ->whereNotIn('id', $plan->planProductCos->pluck('co_id'))
+            ->get();
 
-        $cos = Co::with('coProducts.product')->whereNotIn('id', $plan->planProductCos->pluck('co_id'))->get();
-        dd($cos);
-
-        // dd($plan);
-        // Ambil filter dari request
         $startDate = request('start_date');
         $endDate = request('end_date');
         $category = request('category');
@@ -638,27 +641,30 @@ class PlanSimulateController extends Controller
             $schedulesQuery->whereDate('end_time', '<=', $endDate);
         }
         if ($machineId) {
-            $schedulesQuery->whereHas('operation', function ($query) use ($machineId) {
-                $query->where('machine_id', $machineId);
-            });
+            $schedulesQuery->whereHas('operation', fn($q) => $q->where('machine_id', $machineId));
         }
         if ($processId) {
-            $schedulesQuery->whereHas('operation', function ($query) use ($processId) {
-                $query->where('process_id', $processId);
-            });
+            $schedulesQuery->whereHas('operation', fn($q) => $q->where('process_id', $processId));
         }
 
         $schedules = $schedulesQuery->orderBy('start_time', 'asc')->get();
 
-        // dd($schedules);
+        $machines = Machine::all();
+        $processes = Process::all();
 
-        // Untuk modal filter, ambil semua mesin dan proses
-        $machines = \App\Models\Machine::all();
-        $processes = \App\Models\Process::all();
-
-        // dd($schedules);
-
-        return view('plan-simulate.show', compact('plan', 'schedules', 'machines', 'processes', 'startDate', 'endDate', 'category', 'machineId', 'processId', 'products', 'cos'));
+        return view('plan-simulate.show', compact(
+            'plan',
+            'schedules',
+            'machines',
+            'processes',
+            'startDate',
+            'endDate',
+            'category',
+            'machineId',
+            'processId',
+            'products',
+            'cos'
+        ));
     }
 
     public function destroy($plan)
@@ -778,18 +784,18 @@ class PlanSimulateController extends Controller
             //     ]);
 
             SimulateSchedule::create([
-                'plan_id'          => $plan->id,
-                'co_product_id'    => $schedule->co_product_id ?? null,
-                'operation_id'     => $schedule->operation_id ?? null,
-                'quantity'         => $schedule->quantity ?? 0,
-                'plan_speed'       => $schedule->plan_speed ?? 0,
+                'plan_id' => $plan->id,
+                'co_product_id' => $schedule->co_product_id ?? null,
+                'operation_id' => $schedule->operation_id ?? null,
+                'quantity' => $schedule->quantity ?? 0,
+                'plan_speed' => $schedule->plan_speed ?? 0,
                 'conversion_value' => $schedule->conversion_value ?? 0,
-                'plan_duration'    => $schedule->duration ?? 0,
-                'start_time'       => isset($schedule->start_time) ? Carbon::parse($schedule->start_time)
+                'plan_duration' => $schedule->duration ?? 0,
+                'start_time' => isset($schedule->start_time) ? Carbon::parse($schedule->start_time)
                     : (isset($schedule->startTime) ? Carbon::parse($schedule->startTime) : null),
-                'end_time'         => isset($schedule->end_time) ? Carbon::parse($schedule->end_time)
+                'end_time' => isset($schedule->end_time) ? Carbon::parse($schedule->end_time)
                     : (isset($schedule->endTime) ? Carbon::parse($schedule->endTime) : null),
-                'is_locked'        => (bool) ($schedule->is_locked ?? false),
+                'is_locked' => (bool) ($schedule->is_locked ?? false),
             ]);
         }
 
