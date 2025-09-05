@@ -614,9 +614,14 @@ class PlanSimulateController extends Controller
             'planProductCos.co'
         )->find($plan);
 
-        $products = Product::whereNotIn('id', $plan->planProductCos->pluck('product_id'))->get();
+        // Ambil semua product yang belum ada di plan ini (berdasarkan co_product_id)
+        $usedCoProductIds = $plan->planProductCos->pluck('co_product_id')->filter()->unique()->values();
+        $products = Product::whereIn('id', CoProduct::whereNotIn('id', $usedCoProductIds)->pluck('product_id'))->get();
+
+        // Ambil semua CO yang belum ada di plan ini (berdasarkan co_product_id)
+        $usedCoIds = CoProduct::whereIn('id', $usedCoProductIds)->pluck('co_id')->filter()->unique()->values();
         $cos = Co::with('coProducts.product')
-            ->whereNotIn('id', $plan->planProductCos->pluck('co_id'))
+            ->whereNotIn('id', $usedCoIds)
             ->get();
 
         $startDate = request('start_date');
@@ -652,19 +657,19 @@ class PlanSimulateController extends Controller
         $machines = Machine::all();
         $processes = Process::all();
 
-        dd(
-            $plan,
-            $products,
-            $cos,
-            $schedules,
-            $machines,
-            $processes,
-            $startDate,
-            $endDate,
-            $category,
-            $machineId,
-            $processId
-        );
+        // dd(
+        //     $plan,
+        //     $products,
+        //     $cos,
+        //     $schedules,
+        //     $machines,
+        //     $processes,
+        //     $startDate,
+        //     $endDate,
+        //     $category,
+        //     $machineId,
+        //     $processId
+        // );
 
         return view('plan-simulate.show', compact(
             'plan',
