@@ -33,7 +33,7 @@ Route::get('/plan-simulate/create', [PlanSimulateController::class, 'create'])->
 Route::post('/plan-simulate', [PlanSimulateController::class, 'store'])->name('plan-simulate.store');
 Route::delete('/plan-simulate/{plan}', [PlanSimulateController::class, 'destroy'])->name('plan-simulate.destroy');
 Route::get('/plan-simulate/{plan}/edit', [PlanSimulateController::class, 'edit'])->name('plan-simulate.edit');
-Route::get('/plan-simulate/{plan}', [PlanSimulateController::class, 'show'])->name('plan-simulate.show');
+Route::get('/plan-simulate/{plan}/show', [PlanSimulateController::class, 'show'])->name('plan-simulate.show');
 Route::post('/plan-simulate/{plan}/add/co', [PlanSimulateController::class, 'addCoToPlan'])->name('plan-simulate.addCoToPlan');
 Route::delete('/plan-simulate/co/{id}', [PlanSimulateController::class, 'destroyCoFromPlan'])->name('plan-simulate.destroyCoFromPlan');
 // Route::post('/plan-simulate/generate', [PlanGeneratorController::class, 'generate'])->name('plan-simulate.generate');
