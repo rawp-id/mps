@@ -604,7 +604,7 @@ class PlanSimulateController extends Controller
     public function show($plan)
     {
         // dd($plan);
-        $plan = Plan::with('product', 'co', 'planProductCos', 'planProductCos.coProduct.product', 'planProductCos.co')->findOrFail($plan);
+        $plan = Plan::with('product', 'co', 'planProductCos', 'planProductCos.coProduct.product', 'planProductCos.co')->find($plan);
 
         // dd($plan->planProductCos);
 
