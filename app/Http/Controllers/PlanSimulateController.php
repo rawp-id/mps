@@ -604,7 +604,7 @@ class PlanSimulateController extends Controller
     public function show($plan)
     {
         $plan = Plan::with('product', 'co', 'planProductCos', 'planProductCos.coProduct.product', 'planProductCos.co')->find($plan);
-        dd($plan);
+        // dd($plan);
 
         // dd($plan->planProductCos);
 
@@ -612,7 +612,7 @@ class PlanSimulateController extends Controller
         // dd($products);
 
         $cos = Co::with('coProducts.product')->whereNotIn('id', $plan->planProductCos->pluck('co_id'))->get();
-        // dd($cos);
+        dd($cos);
 
         // dd($plan);
         // Ambil filter dari request
