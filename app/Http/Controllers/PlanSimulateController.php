@@ -47,6 +47,7 @@ class PlanSimulateController extends Controller
             : ($firstProduct ? Carbon::parse($firstProduct->shipping_date)->subDay()->startOfDay() : now());
 
         $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
+        // dd($operations);
 
         // Gabungkan co info per product
         $byProduct = $entries->groupBy('co_product_id')->map(function ($rows) {
@@ -66,9 +67,12 @@ class PlanSimulateController extends Controller
             if (!$p)
                 continue;
 
-            $operationIds = is_array($p->process_details)
-                ? $p->process_details
-                : explode(',', (string) $p->process_details);
+            // Ambil urutan operation_id dari tabel process_products untuk product ini
+            $operationIds = DB::table('process_products')
+                ->where('product_id', $p->id)
+                ->orderBy('id')
+                ->pluck('operation_id')
+                ->toArray();
 
             $tasks = [];
             foreach ($operationIds as $opId) {
