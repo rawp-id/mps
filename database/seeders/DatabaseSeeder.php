@@ -169,7 +169,7 @@ class DatabaseSeeder extends Seeder
             [
                 'code' => 'P001',
                 'name' => 'Bungkus Roti Rasa Coklat',
-                'process_details' => '1,2,3,4,5,6',
+                // 'process_details' => '1,2,3,4,5,6',
                 // 'shipping_date' => now()->addHours(2),
             ],
             [
@@ -255,7 +255,7 @@ class DatabaseSeeder extends Seeder
                 'product_id' => rand(1, 6),
                 'component_product_id' => rand(0, 1) ? rand(1, 4) : null,
                 'operation_id' => rand(1, 9),
-                'type' => Arr::random(['operation', 'setting']),
+                'type' => 'operation',
                 'notes' => Str::random(20),
                 'created_at' => now(),
                 'updated_at' => now(),
