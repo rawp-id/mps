@@ -10,20 +10,22 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('b_o_m_s', function (Blueprint $table) {
+        Schema::create('product_raw_materials', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->foreignId('component_id')->constrained('components')->onDelete('cascade');
-            $table->integer('quantity')->default(1);
-            $table->string('unit')->default('pcs');
-            $table->enum('usage_type', ['consumable', 'usage_based'])->default('consumable');
+            $table->string('raw_mat_code')->nullable();
+            $table->string('material_type')->nullable();
+            $table->string('material_category')->nullable();
+            $table->string('rm_name')->nullable();
+            $table->string('rm_type')->nullable();
+            $table->string('rm_subtype')->nullable();
             $table->decimal('cutsize_length', 10, 2)->nullable();
             $table->decimal('cutsize_width', 10, 2)->nullable();
-            $table->decimal('thickness', 10, 2)->nullable();
-            $table->decimal('qty_plano', 10, 2)->nullable();
+            $table->decimal('raw_mat_thickness', 10, 2)->nullable();
+            $table->string('sheet_substance')->nullable();
+            $table->string('flute_type')->nullable();
             $table->decimal('qty_image', 10, 2)->nullable();
-            $table->decimal('qty_tolerant', 10, 2)->nullable();
-            $table->decimal('qty_waste', 10, 2)->nullable();
+            $table->decimal('qty_plano', 10, 2)->nullable();
             $table->timestamps();
         });
     }
@@ -33,6 +35,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('b_o_m_s');
+        Schema::dropIfExists('product_raw_materials');
     }
 };

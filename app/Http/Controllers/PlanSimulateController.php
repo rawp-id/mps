@@ -816,6 +816,8 @@ class PlanSimulateController extends Controller
         $generate = $this->generateSimulationSchedule($plan->planProductCos, $plan->start_time);
         // dd($generate);
 
+        SimulateSchedule::where('plan_id', $plan->id)->delete();
+
         // dd($generate);
         // simpan hasil
         foreach ($generate->tasks ?? [] as $schedule) {

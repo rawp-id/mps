@@ -10,12 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('assemblies', function (Blueprint $table) {
+        Schema::create('product_statuses', function (Blueprint $table) {
             $table->id();
-            $table->boolean('is_combined');
-            $table->string('form')->nullable();  // contoh: glue, staple, tape
-            $table->string('type')->nullable();  // contoh: straight, corner, double
-            $table->text('notes')->nullable();
+            $table->string('code')->unique(); // contoh: draft, active, closed
+            $table->string('description')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +23,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('assemblies');
+        Schema::dropIfExists('product_statuses');
     }
 };
