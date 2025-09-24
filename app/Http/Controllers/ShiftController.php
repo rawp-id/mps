@@ -2,29 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Operations;
 use Illuminate\Http\Request;
 use App\Models\Shift;
-use App\Models\Machine;
 
 class ShiftController extends Controller
 {
     public function index()
     {
-        $shifts = Shift::with('machine')->get();
+        $shifts = Shift::with('operation')->get();
+        
         return view('shifts.index', compact('shifts'));
     }
 
     public function create()
     {
-        $machines = Machine::all();
-        return view('shifts.create', compact('machines'));
+        $operations = Operations::all();
+        return view('shifts.create', compact('operations'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'machine_id' => 'required|exists:machines,id',
+            'operation_id' => 'required|exists:operations,id',
             'name' => 'required|string|max:255',
+            'day' => 'required|date',
             'start_time' => 'required',
             'end_time' => 'required',
             'is_active' => 'boolean',
@@ -36,15 +38,16 @@ class ShiftController extends Controller
 
     public function edit(Shift $shift)
     {
-        $machines = Machine::all();
-        return view('shifts.edit', compact('shift','machines'));
+        $operations = Operations::all();
+        return view('shifts.edit', compact('shift','operations'));
     }
 
     public function update(Request $request, Shift $shift)
     {
         $request->validate([
-            'machine_id' => 'required|exists:machines,id',
+            'operation_id' => 'required|exists:operations,id',
             'name' => 'required|string|max:255',
+            'day' => 'required|date',
             'start_time' => 'required',
             'end_time' => 'required',
             'is_active' => 'boolean',

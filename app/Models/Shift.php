@@ -6,16 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Shift extends Model
 {
-    protected $fillable = [
-        'machine_id',
-        'name',
-        'start_time',
-        'end_time',
-        'is_active',
-    ];
-
-    public function machine()
+    protected $guarded = ['id'];
+    public function operation()
     {
-        return $this->belongsTo(Machine::class);
+        return $this->belongsTo(Operations::class);
     }
 }

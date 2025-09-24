@@ -24,4 +24,9 @@ class Operations extends Model
     {
         return $this->hasMany(ProcessProduct::class);
     }
+
+    public function shifts()
+    {
+        return $this->hasMany(Shift::class);
+    }
 }

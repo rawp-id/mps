@@ -13,11 +13,11 @@
                             @csrf
                             @method('PUT')
                             <div class="mb-3">
-                                <label for="machine_id" class="form-label">Machine</label>
-                                <select name="machine_id" id="machine_id" class="form-select" required>
-                                    @foreach ($machines as $machine)
-                                        <option value="{{ $machine->id }}" {{ $shift->machine_id == $machine->id ? 'selected' : '' }}>
-                                            {{ $machine->name }}
+                                <label for="operation_id" class="form-label">Operation</label>
+                                <select name="operation_id" id="operation_id" class="form-select" required>
+                                    @foreach ($operations as $operation)
+                                        <option value="{{ $operation->id }}" {{ $shift->operation_id == $operation->id ? 'selected' : '' }}>
+                                            {{ $operation->name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -25,6 +25,10 @@
                             <div class="mb-3">
                                 <label for="name" class="form-label">Shift Name</label>
                                 <input type="text" name="name" id="name" class="form-control" value="{{ old('name', $shift->name) }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="day" class="form-label">Day</label>
+                                <input type="date" name="day" id="day" class="form-control" value="{{ old('day', $shift->day) }}" required>
                             </div>
                             <div class="mb-3">
                                 <label for="start_time" class="form-label">Start Time</label>

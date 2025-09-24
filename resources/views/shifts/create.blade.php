@@ -12,17 +12,21 @@
                         <form action="{{ route('shifts.store') }}" method="POST">
                             @csrf
                             <div class="mb-3">
-                                <label for="machine_id" class="form-label">Machine</label>
-                                <select name="machine_id" id="machine_id" class="form-select" required>
-                                    <option value="">Select a machine</option>
-                                    @foreach($machines as $machine)
-                                        <option value="{{ $machine->id }}">{{ $machine->name }}</option>
+                                <label for="operation_id" class="form-label">Operation</label>
+                                <select name="operation_id" id="operation_id" class="form-select" required>
+                                    <option value="">Select an operation</option>
+                                    @foreach($operations as $operation)
+                                        <option value="{{ $operation->id }}">{{ $operation->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label for="name" class="form-label">Shift Name</label>
                                 <input type="text" name="name" id="name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="day" class="form-label">Day</label>
+                                <input type="date" name="day" id="day" class="form-control" required>
                             </div>
                             <div class="mb-3">
                                 <label for="start_time" class="form-label">Start Time</label>

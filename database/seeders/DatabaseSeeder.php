@@ -357,22 +357,25 @@ class DatabaseSeeder extends Seeder
         // Dummy Shifts
         $shifts = [
             [
-                'machine_id' => $machineIds[0],
+                'operation_id' => rand(1, 9),
                 'name' => 'Shift 1',
+                'day' => Carbon::now()->toDateString(),
                 'start_time' => '08:00:00',
                 'end_time' => '16:00:00',
                 'is_active' => true,
             ],
             [
-                'machine_id' => $machineIds[0],
+                'operation_id' => rand(1, 9),
                 'name' => 'Shift 2',
+                'day' => Carbon::now()->toDateString(),
                 'start_time' => '16:00:00',
                 'end_time' => '00:00:00',
                 'is_active' => true,
             ],
             [
-                'machine_id' => $machineIds[1],
+                'operation_id' => rand(1, 9),
                 'name' => 'Shift 1',
+                'day' => Carbon::now()->toDateString(),
                 'start_time' => '08:00:00',
                 'end_time' => '16:00:00',
                 'is_active' => true,

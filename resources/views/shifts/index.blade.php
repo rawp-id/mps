@@ -14,7 +14,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
-                        <th>Machine</th>
+                        <th>Operation</th>
+                        <th>Day</th>
                         <th>Start Time</th>
                         <th>End Time</th>
                         <th>Active</th>
@@ -25,7 +26,8 @@
                     @forelse($shifts as $shift)
                         <tr>
                             <td>{{ $shift->name }}</td>
-                            <td>{{ $shift->machine->name }}</td>
+                            <td>{{ $shift->operation->name }}</td>
+                            <td>{{ $shift->day ? \Carbon\Carbon::parse($shift->day)->translatedFormat('d F Y') : '-' }}</td>
                             <td>{{ $shift->start_time }}</td>
                             <td>{{ $shift->end_time }}</td>
                             <td>{{ $shift->is_active ? 'Yes' : 'No' }}</td>
