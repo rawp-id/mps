@@ -22,19 +22,26 @@ class PlanSimulateController extends Controller
 {
     public static function generateSimulationSchedule($planProductCos, $start)
     {
-        // Kumpulkan mapping product_id -> (co_id, is_locked) dari planProductCos
+        // Kumpulkan mapping co_product_id -> (plan_id, is_locked) dari planProductCos
         $entries = collect($planProductCos)->map(function ($ppc) {
             return [
                 'plan_id' => (int) ($ppc->plan_id ?? 0),
-                'co_product_id' => (int) ($ppc->co_product_id ?? 0), // <-- langsung field, bukan relasi
-                'is_locked' => (bool) ($ppc->is_locked ?? false), // <-- juga langsung field
+                'co_product_id' => (int) ($ppc->co_product_id ?? 0),
+                'is_locked' => (bool) ($ppc->is_locked ?? false),
             ];
         })->filter(fn($e) => !empty($e['co_product_id']) && !empty($e['plan_id']))
             ->values();
 
-        // Ambil produk dari DB berdasarkan co_product_id di entries
+        // Ambil semua co_product_id dari entries
         $coProductIds = $entries->pluck('co_product_id')->unique()->values()->all();
-        $productIds = CoProduct::whereIn('id', $coProductIds)->pluck('product_id')->unique()->values()->all();
+
+        // Ambil semua CoProduct yang sesuai
+        $coProducts = CoProduct::whereIn('id', $coProductIds)->get()->keyBy('id');
+
+        // Ambil semua product_id dari coProducts
+        $productIds = $coProducts->pluck('product_id')->unique()->values()->all();
+
+        // Ambil semua Product yang sesuai
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         $urlLocal = 'http://localhost:5000/schedule';
@@ -47,10 +54,9 @@ class PlanSimulateController extends Controller
             : ($firstProduct ? Carbon::parse($firstProduct->shipping_date)->subDay()->startOfDay() : now());
 
         $operations = Operations::with(['process', 'machine'])->get()->keyBy('id');
-        // dd($operations);
 
-        // Gabungkan co info per product
-        $byProduct = $entries->groupBy('co_product_id')->map(function ($rows) {
+        // Gabungkan co info per co_product_id
+        $byCoProduct = $entries->groupBy('co_product_id')->map(function ($rows) {
             $row = collect($rows)->first();
             return [
                 'co_product_id' => (int) $row['co_product_id'],
@@ -58,12 +64,15 @@ class PlanSimulateController extends Controller
             ];
         });
 
-        // dd($entries, $byProduct);
-
         $productsPayload = [];
-        foreach ($byProduct as $pid => $coInfo) {
+        foreach ($byCoProduct as $coProductId => $coInfo) {
+            /** @var CoProduct|null $coProduct */
+            $coProduct = $coProducts->get($coProductId);
+            if (!$coProduct)
+                continue;
+
             /** @var Product|null $p */
-            $p = $products->get($pid);
+            $p = $products->get($coProduct->product_id);
             if (!$p)
                 continue;
 
@@ -87,15 +96,13 @@ class PlanSimulateController extends Controller
 
             $productsPayload[] = [
                 'id' => (int) $p->id,
-                'co_product_id' => (int) $pid,
+                'co_product_id' => (int) $coProductId,
                 'name' => (string) $p->name,
                 'shipment_deadline' => Carbon::parse($shipmentDeadline)->format('Y-m-d H:i'),
                 'locked' => (bool) ($coInfo['is_locked'] ?? false),
                 'tasks' => $tasks,
             ];
         }
-
-        // dd($productsPayload);
 
         $datas = [
             'start_time' => $startCarbon->format('Y-m-d H:i'),
@@ -621,6 +628,8 @@ class PlanSimulateController extends Controller
         // Ambil semua product yang belum ada di plan ini (berdasarkan co_product_id)
         $usedCoProductIds = $plan->planProductCos->pluck('co_product_id')->filter()->unique()->values();
         $products = Product::whereIn('id', CoProduct::whereNotIn('id', $usedCoProductIds)->pluck('product_id'))->get();
+
+        // dd($usedCoProductIds, $products);
 
         // Ambil semua CO yang belum ada di plan ini (berdasarkan co_product_id)
         $usedCoIds = CoProduct::whereIn('id', $usedCoProductIds)->pluck('co_id')->filter()->unique()->values();

@@ -64,6 +64,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link text-white" href="">
+                        <i class="bi bi-person-badge me-2"></i> Employees
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link text-white" href="{{ route('shifts.index') }}">
                         <i class="bi bi-clock me-2"></i> Shifts
                     </a>

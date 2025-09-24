@@ -183,6 +183,10 @@ class DatabaseSeeder extends Seeder
                 // 'shipping_date' => now()->addHours(6),
             ],
             [
+                'code' => 'P0010',
+                'name' => 'Bungkus Roti Rasa Keju',
+            ],
+            [
                 'code' => 'P004',
                 'name' => 'Kardus Kado 2017',
                 'process_details' => '1,2,3,4,5,6',
@@ -253,7 +257,7 @@ class DatabaseSeeder extends Seeder
         for ($i = 1; $i <= 10; $i++) {
             DB::table('process_products')->insert([
                 'product_id' => rand(1, 6),
-                'component_product_id' => rand(0, 1) ? rand(1, 4) : null,
+                // 'component_product_id' => rand(0, 1) ? rand(1, 4) : null,
                 'operation_id' => rand(1, 9),
                 'type' => 'operation',
                 'notes' => Str::random(20),
