@@ -89,3 +89,5 @@ Route::resource('downtimes', \App\Http\Controllers\DowntimeController::class);
 Route::resource('calender-days', \App\Http\Controllers\CalenderDayController::class);
 Route::resource('components', \App\Http\Controllers\ComponentController::class);
 Route::resource('boms', \App\Http\Controllers\BomController::class);
+Route::resource('product-status', \App\Http\Controllers\ProductStatusController::class);
+Route::resource('employees', \App\Http\Controllers\EmployeeController::class);

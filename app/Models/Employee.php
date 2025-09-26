@@ -4,13 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Shift extends Model
+class Employee extends Model
 {
     protected $guarded = ['id'];
-    public function operation()
-    {
-        return $this->belongsTo(Operations::class);
-    }
+
     public function employeeShifts()
     {
         return $this->hasMany(EmployeeShift::class);

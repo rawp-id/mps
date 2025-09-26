@@ -22,6 +22,24 @@
 
                 <dt class="col-sm-3">Usage Type:</dt>
                 <dd class="col-sm-9">{{ ucfirst($bom->usage_type) }}</dd>
+
+                <dt class="col-sm-3">Cut Size Length:</dt>
+                <dd class="col-sm-9">{{ $bom->cutsize_length ?? '-' }}</dd>
+
+                <dt class="col-sm-3">Thickness:</dt>
+                <dd class="col-sm-9">{{ $bom->thickness ?? '-' }}</dd>
+
+                <dt class="col-sm-3">Quantity Plano:</dt>
+                <dd class="col-sm-9">{{ $bom->qty_plano ?? '-' }}</dd>
+
+                <dt class="col-sm-3">Quantity Image:</dt>
+                <dd class="col-sm-9">{{ $bom->qty_image ?? '-' }}</dd>
+
+                <dt class="col-sm-3">Quantity Tolerant:</dt>
+                <dd class="col-sm-9">{{ $bom->qty_tolerant ?? '-' }}</dd>
+
+                <dt class="col-sm-3">Quantity Waste:</dt>
+                <dd class="col-sm-9">{{ $bom->qty_waste ?? '-' }}</dd>
             </dl>
         </div>
         <div class="card-footer text-end">

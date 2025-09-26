@@ -39,6 +39,12 @@ class BomController extends Controller
             'quantity' => 'required|integer|min:1',
             'unit' => 'required|string|max:50',
             'usage_type' => 'required|in:consumable,usage_based',
+            'cutsize_length' => 'nullable|integer|min:1',
+            'thickness' => 'nullable|integer|min:1',
+            'qty_plano' => 'nullable|integer|min:1',
+            'qty_image' => 'nullable|integer|min:1',
+            'qty_tolerant' => 'nullable|integer|min:1',
+            'qty_waste' => 'nullable|integer|min:1',
         ]);
 
         BOM::create($request->all());
@@ -76,6 +82,12 @@ class BomController extends Controller
             'quantity' => 'required|integer|min:1',
             'unit' => 'required|string|max:50',
             'usage_type' => 'required|in:consumable,usage_based',
+            'cutsize_length' => 'nullable|integer|min:1',
+            'thickness' => 'nullable|integer|min:1',
+            'qty_plano' => 'nullable|integer|min:1',
+            'qty_image' => 'nullable|integer|min:1',
+            'qty_tolerant' => 'nullable|integer|min:1',
+            'qty_waste' => 'nullable|integer|min:1',
         ]);
 
         $bom->update($request->all());

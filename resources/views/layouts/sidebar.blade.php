@@ -51,6 +51,16 @@
                         <i class="bi bi-diagram-3 me-2"></i> BOMs
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('product-status.index') }}" class="nav-link text-white">
+                        <i class="bi bi-tag me-2"></i> Product Status
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('employees.index') }}" class="nav-link text-white">
+                        <i class="bi bi-person-badge me-2"></i> Employees
+                    </a>
+                </li>
                 <hr>
                 <span class="text-secondary ms-3 mb-1">Settings</span>
                 <li class="nav-item">
